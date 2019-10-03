@@ -13,7 +13,7 @@ package_name=${package_split[-1]}
 
 bin_dir='./build'
 
-platforms=("linux/amd64" "linux/386" "windows/amd64" "windows/386")
+platforms=("linux/amd64" "linux/386" "linux/arm64" "linux/arm")
 
 echo 'Name: '$package_name
 echo 'Release version: '$version
