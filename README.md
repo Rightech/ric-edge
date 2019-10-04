@@ -1,5 +1,7 @@
 # ric-edge
 
+[![Build Status](https://cloud.drone.io/api/badges/Rightech/ric-edge/status.svg)](https://cloud.drone.io/Rightech/ric-edge)
+
 ## config
 
 You can use `config.toml` file to configure core and connectors or specify path via `-config` option.
