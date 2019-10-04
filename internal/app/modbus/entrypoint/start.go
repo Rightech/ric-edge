@@ -31,14 +31,14 @@ import (
 func Start(done <-chan os.Signal) error {
 	var mcli modbus.Client
 
-	if !(viper.GetBool("modbus.tcp") || viper.GetBool("modbus.rtu")) {
-		return errors.New("modbus.tcp or modbus.rtu should be enabled")
-	}
-
-	if viper.GetBool("modbus.tcp") {
+	mode := viper.GetString("modbus.mode")
+	switch mode {
+	case "tcp":
 		mcli = modbus.TCPClient(viper.GetString("modbus.addr"))
-	} else {
+	case "rtu":
 		mcli = modbus.RTUClient(viper.GetString("modbus.addr"))
+	default:
+		return errors.New("modbus.mode should be tcp or rtu but " + mode + " given")
 	}
 
 	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("modbus.ws_path"))

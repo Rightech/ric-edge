@@ -33,9 +33,8 @@ ws_port = 9000
     key_path = "" # mqtt key file path
 
 [modbus]
-    tcp = true
-    rtu = false
-    addr = "localhost:8000"
+    mode = "tcp" # rtu also supported
+    addr = "localhost:8000"  # if mode = rtu there is should be path
 
 [opcua]
     endpoint = "opc.tcp://localhost:4840"

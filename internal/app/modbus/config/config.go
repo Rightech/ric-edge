@@ -26,8 +26,7 @@ import (
 func Setup(version ...string) {
 	config.Init(version)
 
-	viper.SetDefault("modbus.tcp", true)
-	viper.SetDefault("modbus.rtu", false)
+	viper.SetDefault("modbus.mode", "tcp") // rtu also supported
 	viper.SetDefault("modbus.addr", "localhost:8000")
 
 	viper.Set("modbus.ws_path", "/modbus")
