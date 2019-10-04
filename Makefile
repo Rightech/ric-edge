@@ -74,6 +74,9 @@ gen:  ##
 	## run go generate
 	go generate ./...
 
+validate:
+	@scripts/validate-license.sh
+
 define compose
 	docker-compose -p $(PROJECT_NAME) -f tools/dev-env/docker-compose.yml $(1)
 endef
