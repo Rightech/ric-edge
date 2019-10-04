@@ -61,10 +61,12 @@ tool_%:  ##
 	## make run_test_call or make run_test-call
 	go run ./tools/$(subst _,-,$*) $(FLAGS)
 
+VERSION := $(if $(VERSION),$(VERSION),\
+	$(shell git name-rev --tags --name-only $(shell git rev-parse HEAD)))
+
 build_%:  ##
 	## build any service specified by %
-	./scripts/build.sh ./cmd/$(subst _,-,$*) $(shell git name-rev --tags \
-		--name-only $(shell git rev-parse HEAD))
+	./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
 
 buildall: build_core build_modbus build_opcua build_snmp
 

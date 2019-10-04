@@ -8,7 +8,7 @@ steps:
     GOFLAGS: -mod=vendor
   commands:
   - apt-get update && apt-get install -y upx
-  - make buildall
+  - make buildall VERSION=${DRONE_TAG##v}
 - name: publish
   image: plugins/github-release
   settings:
