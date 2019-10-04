@@ -63,7 +63,8 @@ tool_%:  ##
 
 build_%:  ##
 	## build any service specified by %
-	./scripts/build.sh ./cmd/$(subst _,-,$*) $(shell git describe --tags --always)
+	./scripts/build.sh ./cmd/$(subst _,-,$*) $(shell git name-rev --tags \
+		--name-only $(shell git rev-parse HEAD))
 
 buildall: build_core build_modbus build_opcua build_snmp
 
