@@ -75,3 +75,5 @@ To run connectors (modbus connector example)
 ```bash
 $ make run_modbus
 ```
+
+See `init` folder for systemd services.
