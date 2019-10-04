@@ -43,11 +43,12 @@ do
         -o $output_name \
         $package
 
-    upx $output_name
-
     if [ $? -ne 0 ]; then
         printf 'An error has occurred! Aborting the script execution...'
         exit 1
     fi
+
     echo 'OK'
 done
+
+upx $bin_dir/$package_name*
