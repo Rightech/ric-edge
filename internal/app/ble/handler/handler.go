@@ -17,13 +17,18 @@
 package handler
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
+	"github.com/go-ble/ble"
 	"github.com/stretchr/objx"
 )
 
-type Service struct{}
+type Service struct {
+	dev ble.Device
+}
 
 func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	switch req.Method {
@@ -41,8 +46,56 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	return
 }
 
+type dev struct {
+	Addr        string `json:"addr"`
+	RSSI        int    `json:"rssi"`
+	Name        string `json:"name"`
+	Connectable bool   `json:"connectable"`
+}
+
 func (s Service) scan(params objx.Map) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	timeout, err := time.ParseDuration(params.Get("timeout").Str("15s"))
+	if err != nil {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
+	}
+
+	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), timeout))
+
+	devices := make(map[string]*dev)
+
+	advHandler := func(a ble.Advertisement) {
+		v, ok := devices[a.Addr().String()]
+		if ok {
+			v.Name = a.LocalName()
+			v.RSSI = a.RSSI()
+			v.Connectable = a.Connectable()
+			return
+		}
+
+		devices[a.Addr().String()] = &dev{
+			Addr:        a.Addr().String(),
+			RSSI:        a.RSSI(),
+			Name:        a.LocalName(),
+			Connectable: a.Connectable(),
+		}
+	}
+
+	err = s.dev.Scan(ctx, false, advHandler)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return nil, err
+	}
+
+	return mapToList(devices), nil
+}
+
+func mapToList(mp map[string]*dev) []dev {
+	lst := make([]dev, 0, len(mp))
+
+	for _, v := range mp {
+		lst = append(lst, *v)
+	}
+
+	return lst
 }
 
 func (s Service) connect(params objx.Map) (interface{}, error) {

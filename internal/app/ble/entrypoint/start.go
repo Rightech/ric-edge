@@ -27,7 +27,10 @@ import (
 )
 
 func Start(done <-chan os.Signal) error {
-	hand := handler.Service{}
+	hand, err := handler.New()
+	if err != nil {
+		return err
+	}
 
 	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("ble.ws_path"))
 	if err != nil {
