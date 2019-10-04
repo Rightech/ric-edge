@@ -76,4 +76,4 @@ To run connectors (modbus connector example)
 $ make run_modbus
 ```
 
-See `init` folder for systemd services.
+See [init](/init) folder for systemd services.
