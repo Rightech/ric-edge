@@ -4,9 +4,11 @@ name: default
 steps:
 - name: build
   image: golang:1.13
+  environment:
+    GOFLAGS: -mod=vendor
   commands:
-  - apt update && apt install -y upx
-  - make build_all
+  - apt-get update && apt-get install -y upx
+  - make buildall
 - name: publish
   image: plugins/github-release
   settings:

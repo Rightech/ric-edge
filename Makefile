@@ -65,7 +65,7 @@ build_%:  ##
 	## build any service specified by %
 	./scripts/build.sh ./cmd/$(subst _,-,$*) $(shell git describe --tags --always)
 
-build_all: build_core build_modbus build_opcua build_snmp
+buildall: build_core build_modbus build_opcua build_snmp
 
 gen:  ##
 	## run go generate
