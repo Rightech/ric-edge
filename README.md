@@ -51,7 +51,7 @@ ws_port = 9000
 To build all services run
 
 ```bash
-$ make build_all
+$ make buildall
 ```
 
 also you can build specific service
@@ -70,7 +70,7 @@ To run core service use
 $ make run_core
 ```
 
-To run connectors
+To run connectors (modbus connector example)
 
 ```bash
 $ make run_modbus
