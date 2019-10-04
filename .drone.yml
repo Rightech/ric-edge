@@ -1,0 +1,22 @@
+kind: pipeline
+name: default
+
+steps:
+- name: build
+  image: golang:1.13
+  commands:
+  - apt update && apt install -y upx
+  - make build_all
+- name: publish
+  image: plugins/github-release
+  settings:
+    api_key:
+      from_secret: github_token
+    files: build/*
+    checksum:
+      - sha256
+      - sha512
+
+trigger:
+  event:
+  - tag
