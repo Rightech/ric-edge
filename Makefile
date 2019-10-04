@@ -62,7 +62,7 @@ tool_%:  ##
 	go run ./tools/$(subst _,-,$*) $(FLAGS)
 
 VERSION := $(if $(VERSION),$(VERSION),\
-	$(shell git name-rev --tags --name-only $(shell git rev-parse HEAD)))
+	$(shell git describe --tags --always | tail -c +2))
 
 build_%:  ##
 	## build any service specified by %
