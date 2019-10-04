@@ -1,0 +1,40 @@
+[Unit]
+Description=RIC Edge Core Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=1000
+Group=1000
+
+# ---
+# you should change this to your paths
+WorkingDirectory=/home/user/ric-edge
+ExecStart=/home/user/ric-edge/core
+# ---
+
+TimeoutSec=0
+RestartSec=2
+Restart=always
+
+# Note that StartLimit* options were moved from "Service" to "Unit" in systemd 229.
+# Both the old, and new location are accepted by systemd 229 and up, so using the old location
+# to make them work for either version of systemd.
+StartLimitBurst=3
+
+# Note that StartLimitInterval was renamed to StartLimitIntervalSec in systemd 230.
+# Both the old, and new name are accepted by systemd 230 and up, so using the old name to make
+# this option work for either version of systemd.
+StartLimitInterval=60s
+
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+
+PermissionsStartOnly=true
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=ric-edge-core
+
+[Install]
+WantedBy=multi-user.target
