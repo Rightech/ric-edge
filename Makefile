@@ -66,7 +66,7 @@ VERSION := $(if $(VERSION),$(VERSION),\
 
 build_%:  ##
 	## build any service specified by %
-	./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
+	@./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
 
 buildall: build_core build_modbus build_opcua build_snmp
 
@@ -74,7 +74,8 @@ gen:  ##
 	## run go generate
 	go generate ./...
 
-validate:
+validate:  ##
+	## run some project validation scripts
 	@scripts/validate-license.sh
 
 define compose
