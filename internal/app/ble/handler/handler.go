@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/go-ble/ble"
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	"github.com/stretchr/objx"
 )
 
@@ -54,7 +54,7 @@ type dev struct {
 }
 
 func (s Service) scan(params objx.Map) (interface{}, error) {
-	timeout, err := time.ParseDuration(params.Get("timeout").Str("15s"))
+	timeout, err := time.ParseDuration(params.Get("timeout").Str("5s"))
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
 	}
