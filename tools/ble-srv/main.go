@@ -22,7 +22,6 @@ func main() {
 
 	testSvc := ble.NewService(ble.MustParse("00010000-0001-1000-8000-00805F9B34FB"))
 	testSvc.AddCharacteristic(NewCountChar())
-	testSvc.AddCharacteristic(NewEchoChar())
 
 	if err := ble.AddService(testSvc); err != nil {
 		log.Fatalf("can't add service: %s", err)

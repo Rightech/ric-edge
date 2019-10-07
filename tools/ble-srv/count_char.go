@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/binary"
 	"time"
 
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
@@ -10,57 +10,66 @@ import (
 
 // NewCountChar ...
 func NewCountChar() *ble.Characteristic {
-	n := 0
+	n := uint32(0)
 
 	c := ble.NewCharacteristic(ble.MustParse("00010000-0002-1000-8000-00805F9B34FB"))
 	c.HandleRead(ble.ReadHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
-		fmt.Fprintf(rsp, "count: Read %d", n)
 		log.Printf("count: Read %d", n)
-		n++
+
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, n)
+
+		_, err := rsp.Write(bs)
+		if err != nil {
+			log.WithError(err).Error("read: write err")
+			rsp.SetStatus(ble.ErrInvalidHandle)
+			return
+		}
+
+		rsp.SetStatus(ble.ErrSuccess)
 	}))
 
 	c.HandleWrite(ble.WriteHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
-		log.Printf("count: Wrote %s", string(req.Data()))
+		val := binary.LittleEndian.Uint32(req.Data())
+
+		log.Printf("count: Write %d", val)
+
+		n = val
+
+		rsp.SetStatus(ble.ErrSuccess)
 	}))
 
-	c.HandleNotify(ble.NotifyHandlerFunc(func(req ble.Request, n ble.Notifier) {
-		cnt := 0
-		log.Printf("count: Notification subscribed")
-		for {
-			select {
-			case <-n.Context().Done():
-				log.Printf("count: Notification unsubscribed")
-				return
-			case <-time.After(time.Second):
-				log.Printf("count: Notify: %d", cnt)
-				if _, err := fmt.Fprintf(n, "Count: %d", cnt); err != nil {
-					// Client disconnected prematurely before unsubscription.
-					log.Printf("count: Failed to notify : %s", err)
-					return
-				}
-				cnt++
-			}
-		}
-	}))
+	nfHandler := func(typ string) ble.NotifyHandler {
+		return ble.NotifyHandlerFunc(func(req ble.Request, n ble.Notifier) {
+			cnt := uint32(0)
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
 
-	c.HandleIndicate(ble.NotifyHandlerFunc(func(req ble.Request, n ble.Notifier) {
-		cnt := 0
-		log.Printf("count: Indication subscribed")
-		for {
-			select {
-			case <-n.Context().Done():
-				log.Printf("count: Indication unsubscribed")
-				return
-			case <-time.After(time.Second):
-				log.Printf("count: Indicate: %d", cnt)
-				if _, err := fmt.Fprintf(n, "Count: %d", cnt); err != nil {
-					// Client disconnected prematurely before unsubscription.
-					log.Printf("count: Failed to indicate : %s", err)
+			log.Printf("count: %s subscribed\n", typ)
+			for {
+				select {
+				case <-n.Context().Done():
+					log.Printf("count: %s unsubscribed\n", typ)
 					return
+				case <-ticker.C:
+					log.Printf("count: %s: %d", typ, cnt)
+
+					bs := make([]byte, 4)
+					binary.LittleEndian.PutUint32(bs, cnt)
+
+					if _, err := n.Write(bs); err != nil {
+						// Client disconnected prematurely before unsubscription.
+						log.WithError(err).Errorf("count: Failed to %s", typ)
+						return
+					}
+					cnt++
 				}
-				cnt++
 			}
-		}
-	}))
+		})
+	}
+
+	c.HandleNotify(nfHandler("notify"))
+	c.HandleIndicate(nfHandler("indicate"))
+
 	return c
 }
