@@ -32,7 +32,7 @@ const (
 
 // A Profile is composed of one or more services necessary to fulfill a use case.
 type Profile struct {
-	Services []*Service
+	Services []*Service `json:"services"`
 }
 
 // Find searches discovered profile for the specified target's type and UUID.
@@ -88,11 +88,11 @@ func (p *Profile) FindDescriptor(desc *Descriptor) *Descriptor {
 
 // A Service is a BLE service.
 type Service struct {
-	UUID            UUID
-	Characteristics []*Characteristic
+	UUID            UUID              `json:"uuid"`
+	Characteristics []*Characteristic `json:"characteristics"`
 
-	Handle    uint16
-	EndHandle uint16
+	Handle    uint16 `json:"handle"`
+	EndHandle uint16 `json:"end_handle"`
 }
 
 // AddCharacteristic adds a characteristic to a service.
@@ -115,22 +115,22 @@ func (s *Service) NewCharacteristic(u UUID) *Characteristic {
 
 // A Characteristic is a BLE characteristic.
 type Characteristic struct {
-	UUID        UUID
-	Property    Property
-	Secure      Property // FIXME
-	Descriptors []*Descriptor
-	CCCD        *Descriptor
+	UUID        UUID          `json:"uuid"`
+	Property    Property      `json:"property"`
+	Secure      Property      `json:"secure"` // FIXME
+	Descriptors []*Descriptor `json:"descriptors"`
+	CCCD        *Descriptor   `json:"cccd"`
 
-	Value []byte
+	Value []byte `json:"value"`
 
-	ReadHandler     ReadHandler
-	WriteHandler    WriteHandler
-	NotifyHandler   NotifyHandler
-	IndicateHandler NotifyHandler
+	ReadHandler     ReadHandler   `json:"-"`
+	WriteHandler    WriteHandler  `json:"-"`
+	NotifyHandler   NotifyHandler `json:"-"`
+	IndicateHandler NotifyHandler `json:"-"`
 
-	Handle      uint16
-	ValueHandle uint16
-	EndHandle   uint16
+	Handle      uint16 `json:"handle"`
+	ValueHandle uint16 `json:"value_handle"`
+	EndHandle   uint16 `json:"end_handle"`
 }
 
 // AddDescriptor adds a descriptor to a characteristic.
@@ -198,14 +198,14 @@ func (c *Characteristic) HandleIndicate(h NotifyHandler) {
 
 // Descriptor is a BLE descriptor
 type Descriptor struct {
-	UUID     UUID
-	Property Property
+	UUID     UUID     `json:"uuid"`
+	Property Property `json:"property"`
 
-	Handle uint16
-	Value  []byte
+	Handle uint16 `json:"handle"`
+	Value  []byte `json:"value"`
 
-	ReadHandler  ReadHandler
-	WriteHandler WriteHandler
+	ReadHandler  ReadHandler  `json:"-"`
+	WriteHandler WriteHandler `json:"-"`
 }
 
 // SetValue makes the descriptor support read requests, and returns a static value.
