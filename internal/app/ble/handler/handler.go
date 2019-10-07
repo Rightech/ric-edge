@@ -20,11 +20,17 @@ import (
 	"context"
 	"errors"
 	"time"
+	"unsafe"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/objx"
 )
+
+func init() { // nolint: gochecknoinits
+	jsoniter.RegisterTypeEncoder("ble.UUID", bleUUIDDecoder{})
+}
 
 type Service struct {
 	dev ble.Device
@@ -34,8 +40,8 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	switch req.Method {
 	case "ble-scan":
 		res, err = s.scan(req.Params)
-	case "ble-connect":
-		res, err = s.connect(req.Params)
+	case "ble-discover":
+		res, err = s.discover(req.Params)
 	case "ble-read":
 		res, err = s.read(req.Params)
 	case "ble-write":
@@ -98,8 +104,23 @@ func mapToList(mp map[string]*dev) []dev {
 	return lst
 }
 
-func (s Service) connect(params objx.Map) (interface{}, error) {
-	return nil, errors.New("not implemented")
+func (s Service) discover(params objx.Map) (interface{}, error) {
+	address := params.Get("address").Str()
+	if address == "" {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "empty address")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
+	if err != nil {
+		return nil, err
+	}
+
+	defer cli.CancelConnection() // nolint: errcheck
+
+	return cli.DiscoverProfile(true)
 }
 
 func (s Service) read(params objx.Map) (interface{}, error) {
@@ -108,4 +129,16 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 
 func (s Service) write(params objx.Map) (interface{}, error) {
 	return nil, errors.New("not implemented")
+}
+
+type bleUUIDDecoder struct{}
+
+func (bleUUIDDecoder) IsEmpty(ptr unsafe.Pointer) bool {
+	v := *((*ble.UUID)(ptr))
+	return v.Len() == 0
+}
+
+func (bleUUIDDecoder) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+	v := *((*ble.UUID)(ptr))
+	stream.WriteString(v.String())
 }
