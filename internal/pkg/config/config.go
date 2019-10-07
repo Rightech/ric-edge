@@ -30,9 +30,7 @@ func Init(version []string) {
 
 	viper.SetConfigFile(*cfgPath)
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal(err)
-	}
+	err := viper.ReadInConfig()
 
 	if len(version) > 0 && version[0] != "" {
 		viper.Set("version", version[0])
@@ -45,6 +43,10 @@ func Init(version []string) {
 	viper.SetDefault("ws_port", 9000)
 
 	setupLogger()
+
+	if err != nil {
+		log.Warn(err)
+	}
 }
 
 func logFormatter() log.Formatter {
