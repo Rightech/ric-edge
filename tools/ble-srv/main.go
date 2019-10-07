@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 
+	"github.com/Rightech/ric-edge/internal/pkg/config"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+	config.Init(nil)
+
 	d, err := NewDevice()
 	if err != nil {
 		log.Fatalf("can't new device : %s", err)
