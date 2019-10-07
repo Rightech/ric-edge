@@ -1,6 +1,6 @@
 package handler
 
-import "github.com/go-ble/ble/darwin"
+import "github.com/Rightech/ric-edge/third_party/go-ble/ble/darwin"
 
 func New() (Service, error) {
 	dev, err := darwin.NewDevice()

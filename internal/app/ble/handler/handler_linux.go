@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/go-ble/ble/linux"
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble/linux"
 )
 
 func New() (Service, error) {

@@ -5,17 +5,6 @@ github.com/eclipse/paho.mqtt.golang/packets
 github.com/etcd-io/bbolt
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
-# github.com/go-ble/ble v0.0.0-20190521171521-147700f13610
-github.com/go-ble/ble
-github.com/go-ble/ble/darwin
-github.com/go-ble/ble/linux
-github.com/go-ble/ble/linux/adv
-github.com/go-ble/ble/linux/att
-github.com/go-ble/ble/linux/gatt
-github.com/go-ble/ble/linux/hci
-github.com/go-ble/ble/linux/hci/cmd
-github.com/go-ble/ble/linux/hci/evt
-github.com/go-ble/ble/linux/hci/socket
 # github.com/goburrow/modbus v0.1.0
 github.com/goburrow/modbus
 # github.com/goburrow/serial v0.1.0
