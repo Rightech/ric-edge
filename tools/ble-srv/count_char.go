@@ -8,6 +8,35 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func nfHandler(typ string) ble.NotifyHandler {
+	return ble.NotifyHandlerFunc(func(req ble.Request, n ble.Notifier) {
+		cnt := uint32(0)
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+
+		log.Printf("count: %s subscribed\n", typ)
+		for {
+			select {
+			case <-n.Context().Done():
+				log.Printf("count: %s unsubscribed\n", typ)
+				return
+			case <-ticker.C:
+				log.Printf("count: %s: %d", typ, cnt)
+
+				bs := make([]byte, 4)
+				binary.LittleEndian.PutUint32(bs, cnt)
+
+				if _, err := n.Write(bs); err != nil {
+					// Client disconnected prematurely before unsubscription.
+					log.WithError(err).Errorf("count: Failed to %s", typ)
+					return
+				}
+				cnt++
+			}
+		}
+	})
+}
+
 // NewCountChar ...
 func NewCountChar() *ble.Characteristic {
 	n := uint32(0)
@@ -38,35 +67,6 @@ func NewCountChar() *ble.Characteristic {
 
 		rsp.SetStatus(ble.ErrSuccess)
 	}))
-
-	nfHandler := func(typ string) ble.NotifyHandler {
-		return ble.NotifyHandlerFunc(func(req ble.Request, n ble.Notifier) {
-			cnt := uint32(0)
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
-
-			log.Printf("count: %s subscribed\n", typ)
-			for {
-				select {
-				case <-n.Context().Done():
-					log.Printf("count: %s unsubscribed\n", typ)
-					return
-				case <-ticker.C:
-					log.Printf("count: %s: %d", typ, cnt)
-
-					bs := make([]byte, 4)
-					binary.LittleEndian.PutUint32(bs, cnt)
-
-					if _, err := n.Write(bs); err != nil {
-						// Client disconnected prematurely before unsubscription.
-						log.WithError(err).Errorf("count: Failed to %s", typ)
-						return
-					}
-					cnt++
-				}
-			}
-		})
-	}
 
 	c.HandleNotify(nfHandler("notify"))
 	c.HandleIndicate(nfHandler("indicate"))
