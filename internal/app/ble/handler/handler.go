@@ -18,6 +18,7 @@ package handler
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"time"
 	"unsafe"
@@ -123,12 +124,96 @@ func (s Service) discover(params objx.Map) (interface{}, error) {
 	return cli.DiscoverProfile(true)
 }
 
+func parseRequest(params objx.Map) (a string, s ble.UUID, c ble.UUID, err error) {
+	a = params.Get("address").Str()
+	if a == "" {
+		err = jsonrpc.ErrInvalidParams.AddData("msg", "empty address")
+		return
+	}
+
+	s, err = ble.Parse(params.Get("service_uuid").Str())
+	if err != nil {
+		err = jsonrpc.ErrInvalidParams.AddData("p", "service_uuid").
+			AddData("msg", err.Error())
+		return
+	}
+
+	c, err = ble.Parse(params.Get("characteristic_uuid").Str())
+	if err != nil {
+		err = jsonrpc.ErrInvalidParams.AddData("p", "characteristic_uuid").
+			AddData("msg", err.Error())
+		return
+	}
+
+	return
+}
+
 func (s Service) read(params objx.Map) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	address, srvUUID, chUUID, err := parseRequest(params)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
+	if err != nil {
+		return nil, err
+	}
+
+	defer cli.CancelConnection() // nolint: errcheck
+
+	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := cli.DiscoverCharacteristics([]ble.UUID{chUUID}, srv[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return cli.ReadCharacteristic(ch[0])
 }
 
 func (s Service) write(params objx.Map) (interface{}, error) {
-	return nil, errors.New("not implemented")
+	address, srvUUID, chUUID, err := parseRequest(params)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
+	if err != nil {
+		return nil, err
+	}
+
+	defer cli.CancelConnection() // nolint: errcheck
+
+	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := cli.DiscoverCharacteristics([]ble.UUID{chUUID}, srv[0])
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := base64.StdEncoding.DecodeString(params.Get("value").Str())
+	if err != nil {
+		return nil, jsonrpc.ErrParse.AddData("p", "value").AddData("msg", err.Error())
+	}
+
+	err = cli.WriteCharacteristic(ch[0], value, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return true, nil
 }
 
 type bleUUIDDecoder struct{}
