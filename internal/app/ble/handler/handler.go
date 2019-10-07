@@ -19,6 +19,7 @@ package handler
 import (
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"time"
 	"unsafe"
@@ -26,6 +27,7 @@ import (
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
 )
 
@@ -47,6 +49,8 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.read(req.Params)
 	case "ble-write":
 		res, err = s.write(req.Params)
+	case "ble-subscribe":
+		res, err = s.subscribe(req.Params)
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
@@ -209,6 +213,46 @@ func (s Service) write(params objx.Map) (interface{}, error) {
 	}
 
 	err = cli.WriteCharacteristic(ch[0], value, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return true, nil
+}
+
+func (s Service) subscribe(params objx.Map) (interface{}, error) {
+	address, srvUUID, chUUID, err := parseRequest(params)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
+	if err != nil {
+		return nil, err
+	}
+
+	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := cli.DiscoverCharacteristics([]ble.UUID{chUUID}, srv[0])
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = cli.DiscoverDescriptors(nil, ch[0])
+	if err != nil {
+		return nil, err
+	}
+
+	err = cli.Subscribe(ch[0], params.Get("indicator").Bool(), func(req []byte) {
+		val := binary.LittleEndian.Uint32(req)
+		log.Info(val)
+	})
 	if err != nil {
 		return nil, err
 	}
