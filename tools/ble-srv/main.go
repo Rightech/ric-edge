@@ -18,6 +18,8 @@ func main() {
 	}
 	ble.SetDefaultDevice(d)
 
+	log.Info("Address: ", d.Address().String())
+
 	testSvc := ble.NewService(ble.MustParse("00010000-0001-1000-8000-00805F9B34FB"))
 	testSvc.AddCharacteristic(NewCountChar())
 	testSvc.AddCharacteristic(NewEchoChar())
