@@ -39,7 +39,11 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	}
 	defer db.Close()
 
-	sock, err := ws.New(viper.GetInt("ws_port"))
+	// this channel needs to communicate between jsonrpc transport and rpc service
+	// in this channel transport send jsonrpc requests
+	requestsCh := make(chan []byte)
+
+	sock, err := ws.New(viper.GetInt("ws_port"), requestsCh)
 	if err != nil {
 		return err
 	}
@@ -62,7 +66,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
 		db, viper.GetBool("core.db.clean_state"),
-		sock, api)
+		sock, api, requestsCh)
 	if err != nil {
 		return err
 	}

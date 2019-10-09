@@ -50,6 +50,8 @@ type conn struct {
 	*websocket.Conn
 	l         *log.Entry
 	name, sid string
+	rmx       *sync.Mutex
+	req       map[string]chan<- []byte
 }
 
 // Service represent web socket server (or http fallback server)
@@ -60,9 +62,8 @@ type Service struct {
 	mx    sync.RWMutex
 	conns map[string]conn
 
-	rmx  sync.Mutex
-	req  map[string]chan<- []byte
-	done chan struct{}
+	done       chan struct{}
+	requestsCh chan<- []byte
 }
 
 // this wrapper add logger with request id to request context
@@ -82,15 +83,15 @@ func requestsWrapper(f http.HandlerFunc) http.HandlerFunc {
 }
 
 // New create new WebSocket server
-func New(port int) (*Service, error) {
+func New(port int, requestsCh chan<- []byte) (*Service, error) {
 	if !(1 <= port && port <= 65535) {
 		return nil, errors.New("ws.new: wrong port")
 	}
 
 	ws := &Service{
-		conns: make(map[string]conn, 10),
-		req:   make(map[string]chan<- []byte, 10),
-		done:  make(chan struct{}),
+		conns:      make(map[string]conn, 10),
+		done:       make(chan struct{}),
+		requestsCh: requestsCh,
 	}
 
 	ws.upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -193,7 +194,11 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("new connection")
 
-	wsc := conn{c, logger, connectorType, sid}
+	wsc := conn{
+		Conn: c, l: logger, name: connectorType, sid: sid,
+		rmx: new(sync.Mutex),
+		req: make(map[string]chan<- []byte, 10),
+	}
 	s.mx.Lock()
 	s.conns[connectorType] = wsc
 	s.mx.Unlock()
@@ -202,6 +207,9 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) closeConnOnErr(conn conn) {
+	conn.rmx.Lock()
+	conn.req = nil
+	conn.rmx.Unlock()
 	conn.Close()
 
 	s.mx.Lock()
@@ -215,6 +223,7 @@ func (s *Service) listen(conn conn) {
 		if err != nil {
 			select {
 			case <-s.done:
+				close(s.requestsCh)
 				conn.l.Info("disconnect client because server dies (normal)")
 				return
 			default:
@@ -239,8 +248,15 @@ func (s *Service) listen(conn conn) {
 			continue
 		}
 
-		idVal := jsoniter.ConfigFastest.Get(msg, "id")
+		// check this message request or response
+		methodVal := jsoniter.ConfigFastest.Get(msg, "method")
+		if methodVal.ValueType() != jsoniter.InvalidValue {
+			// this msg is request
+			s.requestsCh <- msg
+			continue
+		}
 
+		idVal := jsoniter.ConfigFastest.Get(msg, "id")
 		if idVal.LastError() != nil {
 			conn.l.WithError(idVal.LastError()).Error("get id from json")
 			continue
@@ -248,10 +264,10 @@ func (s *Service) listen(conn conn) {
 
 		id := idVal.ToString()
 
-		s.rmx.Lock()
-		ch, ok := s.req[id]
-		delete(s.req, id)
-		s.rmx.Unlock()
+		conn.rmx.Lock()
+		ch, ok := conn.req[id]
+		delete(conn.req, id)
+		conn.rmx.Unlock()
 		if !ok {
 			panic("resp chan not found")
 		}
@@ -280,9 +296,9 @@ func (s *Service) Call(name, id string, payload []byte) <-chan []byte {
 		return resp
 	}
 
-	s.rmx.Lock()
-	s.req[id] = resp
-	s.rmx.Unlock()
+	conn.rmx.Lock()
+	conn.req[id] = resp
+	conn.rmx.Unlock()
 
 	return resp
 }

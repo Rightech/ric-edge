@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble/linux"
 )
 
@@ -10,5 +11,5 @@ func New() (Service, error) {
 		return Service{}, err
 	}
 
-	return Service{dev}, nil
+	return Service{dev: dev, conns: make(map[string]ble.Client)}, nil
 }

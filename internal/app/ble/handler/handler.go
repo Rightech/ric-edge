@@ -27,16 +27,29 @@ import (
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
 )
 
 func init() { // nolint: gochecknoinits
+	// custom uuid decoder decode uuid as string
+	// default decoder decode uuid as byte slice (base64)
 	jsoniter.RegisterTypeEncoder("ble.UUID", bleUUIDDecoder{})
 }
 
 type Service struct {
 	dev ble.Device
+	rpc jsonrpc.RPC
+	// this map address to client
+	// it's required because only one client can exists
+	// so when subscriptions starts we remember client and use it in next calls
+	// when subscription dies client removes from map
+	conns map[string]ble.Client
+}
+
+func (s *Service) InjectRPC(rpc jsonrpc.RPC) {
+	// this method required for lazy initialization of rpc client
+	// this client needs to send notifications (see subscribe)
+	s.rpc = rpc
 }
 
 func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
@@ -51,6 +64,8 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.write(req.Params)
 	case "ble-subscribe":
 		res, err = s.subscribe(req.Params)
+	case "ble-subscribe-cancel":
+		res, err = s.subscribeCancel(req.Params)
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
@@ -118,13 +133,20 @@ func (s Service) discover(params objx.Map) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
-	if err != nil {
-		return nil, err
+	var err error
+	cli, ok := s.conns[address]
+	if !ok {
+		cli, err = s.dev.Dial(ctx, ble.NewAddr(address))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	defer cli.CancelConnection() // nolint: errcheck
-
+	defer func() {
+		if !ok {
+			cli.CancelConnection() // nolint: errcheck
+		}
+	}()
 	return cli.DiscoverProfile(true)
 }
 
@@ -161,13 +183,19 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
-	if err != nil {
-		return nil, err
+	cli, ok := s.conns[address]
+	if !ok {
+		cli, err = s.dev.Dial(ctx, ble.NewAddr(address))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	defer cli.CancelConnection() // nolint: errcheck
-
+	defer func() {
+		if !ok {
+			cli.CancelConnection() // nolint: errcheck
+		}
+	}()
 	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
 	if err != nil {
 		return nil, err
@@ -190,12 +218,19 @@ func (s Service) write(params objx.Map) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
-	if err != nil {
-		return nil, err
+	cli, ok := s.conns[address]
+	if !ok {
+		cli, err = s.dev.Dial(ctx, ble.NewAddr(address))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	defer cli.CancelConnection() // nolint: errcheck
+	defer func() {
+		if !ok {
+			cli.CancelConnection() // nolint: errcheck
+		}
+	}()
 
 	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
 	if err != nil {
@@ -229,9 +264,12 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cli, err := s.dev.Dial(ctx, ble.NewAddr(address))
-	if err != nil {
-		return nil, err
+	cli, ok := s.conns[address]
+	if !ok {
+		cli, err = s.dev.Dial(ctx, ble.NewAddr(address))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
@@ -249,13 +287,46 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
+	nfSrv := s.rpc.NewNotification()
+
 	err = cli.Subscribe(ch[0], params.Get("indicator").Bool(), func(req []byte) {
 		val := binary.LittleEndian.Uint32(req)
-		log.Info(val)
+		nfSrv.Send(map[string]interface{}{
+			"address":             address,
+			"service_uuid":        srvUUID,
+			"characteristic_uuid": chUUID,
+			"value":               val,
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	if !ok {
+		s.conns[address] = cli
+	}
+
+	return nfSrv, nil
+}
+
+func (s Service) subscribeCancel(params objx.Map) (interface{}, error) {
+	address := params.Get("address").Str()
+	cli, ok := s.conns[address]
+	if !ok {
+		return nil, jsonrpc.ErrInvalidRequest.AddData("msg", "sub not found")
+	}
+
+	err := cli.ClearSubscriptions()
+	if err != nil {
+		return nil, err
+	}
+
+	err = cli.CancelConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	delete(s.conns, address)
 
 	return true, nil
 }
