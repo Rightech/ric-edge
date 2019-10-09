@@ -3,7 +3,8 @@ package uapolicy
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"errors"
+
+	"github.com/gopcua/opcua/errors"
 )
 
 const (
