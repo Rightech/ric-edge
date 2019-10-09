@@ -21,8 +21,12 @@ import (
 	"errors"
 	"io"
 	"runtime/debug"
+	"sync"
+	"time"
 
+	"github.com/Rightech/ric-edge/pkg/nanoid"
 	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
 )
 
@@ -33,8 +37,13 @@ type Caller interface {
 	Call(Request) (interface{}, error)
 }
 
+type RPC interface {
+	NewNotification() NotificationService
+}
+
 const (
 	jsonRPCVersion = "2.0"
+	retriesSleep   = time.Second
 )
 
 type NextWriter interface {
@@ -51,12 +60,14 @@ type Transport interface {
 }
 
 type Service struct {
+	c Caller
+	// this lock required because only one encoder can exists at point of time
+	mx *sync.Mutex
 	tr Transport
-	c  Caller
 }
 
 func New(tr Transport, c Caller) Service {
-	return Service{tr, c}
+	return Service{c, new(sync.Mutex), tr}
 }
 
 // return decoder with UseNumber enabled
@@ -90,11 +101,6 @@ func (s Service) Serve(ctx context.Context) error {
 			return err
 		}
 
-		encoder, closer, err := newEncoder(s.tr) // json encoder
-		if err != nil {
-			return err
-		}
-
 		var req Request
 		err = decoder.Decode(&req)
 		if errors.Is(err, io.EOF) {
@@ -106,10 +112,17 @@ func (s Service) Serve(ctx context.Context) error {
 		}
 
 		res := s.handleMessage(req, err)
+		s.mx.Lock()
+		encoder, closer, err := newEncoder(s.tr) // json encoder
+		if err != nil {
+			s.mx.Unlock()
+			return err
+		}
 
 		encoder.WriteVal(res)
 		encoder.Flush()
 		closer.Close()
+		s.mx.Unlock()
 
 		if encoder.Error != nil {
 			panic(encoder.Error)
@@ -120,10 +133,10 @@ func (s Service) Serve(ctx context.Context) error {
 }
 
 type Request struct {
-	JSONRPC string
-	Method  string
-	ID      jsoniter.RawMessage
-	Params  objx.Map
+	JSONRPC string              `json:"jsonrpc"`
+	Method  string              `json:"method"`
+	ID      jsoniter.RawMessage `json:"id,omitempty"`
+	Params  objx.Map            `json:"params"`
 }
 
 type response struct {
@@ -131,6 +144,61 @@ type response struct {
 	ID      jsoniter.RawMessage `json:"id"`
 	Result  interface{}         `json:"result,omitempty"`
 	Error   *Error              `json:"error,omitempty"`
+}
+
+type NotificationService struct {
+	s     Service
+	id    string
+	sendL *sync.Mutex
+}
+
+func (s Service) NewNotification() NotificationService {
+	return NotificationService{s: s, id: nanoid.New(), sendL: new(sync.Mutex)}
+}
+
+func (n NotificationService) toResult() interface{} {
+	return map[string]interface{}{"process_id": n.id, "notification": true}
+}
+
+func (n NotificationService) ID() string {
+	return n.id
+}
+
+// Send message (as jsonrpc notification call) to core
+func (n NotificationService) Send(params map[string]interface{}) {
+	// this lock prevent multiple calls when client in reconnect state
+	n.sendL.Lock()
+	defer n.sendL.Unlock()
+
+	params["__process_id"] = n.id
+
+	req := Request{
+		JSONRPC: jsonRPCVersion,
+		Method:  "notification",
+		Params:  params,
+	}
+
+	for {
+		n.s.mx.Lock()
+		enc, closer, err := newEncoder(n.s.tr)
+		if err != nil {
+			log.Debug("cant send")
+			n.s.mx.Unlock()
+			time.Sleep(retriesSleep) // wait and try again
+			continue
+		}
+
+		enc.WriteVal(req)
+		enc.Flush()
+		closer.Close()
+		n.s.mx.Unlock()
+
+		if enc.Error != nil {
+			panic(enc.Error)
+		}
+
+		return
+	}
 }
 
 func (s Service) call(req Request) (res interface{}, err error) {
@@ -168,6 +236,12 @@ func (s Service) handleMessage(req Request, err error) response {
 	}
 
 	res, err := s.call(req)
+
+	if v, ok := res.(interface {
+		toResult() interface{}
+	}); err == nil && ok {
+		res = v.toResult()
+	}
 
 	if res == nil && err == nil {
 		panic("result and error are nil")

@@ -29,10 +29,18 @@ type TransportWithConnect interface {
 }
 
 func ServeWithReconnect(ctx context.Context, cli TransportWithConnect, caller Caller) {
+	srv := New(cli, caller)
+
+	if v, ok := caller.(interface {
+		InjectRPC(RPC)
+	}); ok {
+		v.InjectRPC(srv)
+	}
+
 	for ctx.Err() == nil {
-		err := New(cli, caller).Serve(ctx)
+		err := srv.Serve(ctx)
 		if err != nil {
-			t := time.NewTicker(time.Second)
+			t := time.NewTicker(retriesSleep)
 			counter := 0
 			for counter >= 0 {
 				select {

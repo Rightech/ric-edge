@@ -46,7 +46,7 @@ func NewService(db DB, cleanStart bool) (Service, error) {
 
 		if cleanStart {
 			err = tx.DeleteBucket([]byte(bucketName))
-			if err != nil {
+			if err != nil && err != bbolt.ErrBucketNotFound {
 				return err
 			}
 		}

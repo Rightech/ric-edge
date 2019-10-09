@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -29,17 +30,18 @@ import (
 )
 
 type Service struct {
-	ws   *websocket.Conn
 	u    url.URL
 	done chan struct{}
+	mx   sync.RWMutex
+	ws   *websocket.Conn
 }
 
-func New(port int, path string) (Service, error) {
+func New(port int, path string) (*Service, error) {
 	if !(1 <= port && port <= 65535) {
-		return Service{}, errors.New("ws.new: wrong port")
+		return nil, errors.New("ws.new: wrong port")
 	}
 
-	s := Service{
+	s := &Service{
 		u:    url.URL{Scheme: "ws", Host: "localhost:" + strconv.Itoa(port), Path: path},
 		done: make(chan struct{}),
 	}
@@ -63,15 +65,21 @@ func (s *Service) Connect() error {
 	}
 
 	resp.Body.Close()
+	s.mx.Lock()
 	s.ws = c
+	s.mx.Unlock()
 
 	log.Info("connected to core")
 
 	return nil
 }
 
-func (s Service) Close() error {
+func (s *Service) Close() error {
 	close(s.done)
+
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
 	s.ws.WriteControl( // nolint: errcheck
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shutdown"),
@@ -81,11 +89,17 @@ func (s Service) Close() error {
 	return s.ws.Close()
 }
 
-func (s Service) NextWriter() (io.WriteCloser, error) {
+func (s *Service) NextWriter() (io.WriteCloser, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
 	return s.ws.NextWriter(websocket.TextMessage)
 }
 
-func (s Service) NextReader() (io.Reader, error) {
+func (s *Service) NextReader() (io.Reader, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
 	mt, r, err := s.ws.NextReader()
 	if err != nil {
 		select {

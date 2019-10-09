@@ -43,15 +43,17 @@ type api interface {
 }
 
 type Service struct {
-	rpc     rpcCli
-	api     api
-	obj     cloud.Object
-	model   cloud.Model
-	timeout time.Duration
-	state   stater
+	rpc        rpcCli
+	api        api
+	obj        cloud.Object
+	model      cloud.Model
+	timeout    time.Duration
+	state      stater
+	requestsCh <-chan []byte
 }
 
-func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli, api api) (Service, error) {
+func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
+	api api, requestsCh <-chan []byte) (Service, error) {
 	st, err := state.NewService(db, cleanStart)
 	if err != nil {
 		return Service{}, err
@@ -67,7 +69,11 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli, ap
 		return Service{}, err
 	}
 
-	return Service{r, api, object, model, tm, st}, nil
+	s := Service{r, api, object, model, tm, st, requestsCh}
+
+	go s.requestsListener()
+
+	return s, nil
 }
 
 var (
@@ -75,6 +81,13 @@ var (
 	errUnmarshal = jsonrpc.ErrParse.AddData("msg", "json unmarshal error")
 	errBadIDType = jsonrpc.ErrInternal.AddData("msg", "id should be string or null")
 )
+
+func (s Service) requestsListener() {
+	for msg := range s.requestsCh {
+		// TODO: add implementation of call handler
+		log.Info(string(msg))
+	}
+}
 
 func (s Service) Call(name string, payload []byte) []byte {
 	var data objx.Map

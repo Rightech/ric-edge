@@ -15,7 +15,7 @@ ws_port = 9000
 
 [core]
     id = "" # id of edge
-    rpc_timeout = "15s" # how long core should wait response from connector before return timeout error
+    rpc_timeout = "1m" # how long core should wait response from connector before return timeout error
 
     [core.db]
     path = "storage.db"
