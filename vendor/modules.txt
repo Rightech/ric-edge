@@ -11,9 +11,10 @@ github.com/goburrow/modbus
 github.com/goburrow/serial
 # github.com/golang/mock v1.2.0
 github.com/golang/mock/gomock
-# github.com/gopcua/opcua v0.1.6-0.20191002084605-22f9748bf524
+# github.com/gopcua/opcua v0.1.6
 github.com/gopcua/opcua
 github.com/gopcua/opcua/debug
+github.com/gopcua/opcua/errors
 github.com/gopcua/opcua/id
 github.com/gopcua/opcua/ua
 github.com/gopcua/opcua/uacp

@@ -3,7 +3,8 @@ package uapolicy
 import (
 	"crypto"
 	"crypto/hmac"
-	"errors"
+
+	"github.com/gopcua/opcua/errors"
 )
 
 type HMAC struct {
