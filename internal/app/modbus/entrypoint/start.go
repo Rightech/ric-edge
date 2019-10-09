@@ -48,7 +48,7 @@ func Start(done <-chan os.Signal) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go jsonrpc.ServeWithReconnect(ctx, &cli, handler.New(mcli))
+	go jsonrpc.ServeWithReconnect(ctx, cli, handler.New(mcli))
 
 	<-done
 	cancel()
