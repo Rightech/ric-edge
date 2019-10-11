@@ -80,3 +80,41 @@ $ make run_modbus
 ```
 
 See [init](/init) folder for systemd services.
+
+## dev
+
+### dev env
+
+You can find some development helpers at tools dir.
+
+To run helper docker containers execute
+
+```bash
+$ make dev_env
+```
+
+To stop
+
+```bash
+$ make stop_env
+```
+
+And to remove
+
+```bash
+$ make rm_env
+```
+
+### git hooks
+
+It is useful to place validate-license script to pre-commit hook. To do this run
+
+```bash
+$ ln -f scripts/validate-license.sh .git/hooks/pre-commit
+```
+
+Also you can run it manual by
+
+```bash
+$ make validate
+```
