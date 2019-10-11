@@ -273,25 +273,3 @@ func buildResult(id jsoniter.RawMessage, res interface{}, e error) response {
 
 	return resp
 }
-
-func BuildResp(id string, res interface{}) []byte {
-	var (
-		data, ok = res.([]byte)
-		err      error
-	)
-	if !ok {
-		data, err = jsoniter.ConfigFastest.Marshal(res)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	if id == "" {
-		id = "null"
-	}
-
-	resp := `{"jsonrpc":"` + jsonRPCVersion + `","id":"` + id + `","result":` +
-		string(data) + `}`
-
-	return []byte(resp)
-}

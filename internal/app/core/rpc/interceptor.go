@@ -89,8 +89,6 @@ func (s Service) requestsListener() {
 	}
 }
 
-const coreName = "core"
-
 func (s Service) Call(name string, payload []byte) []byte {
 	var data objx.Map
 
