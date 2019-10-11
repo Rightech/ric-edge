@@ -275,9 +275,10 @@ func buildResult(id jsoniter.RawMessage, res interface{}, e error) response {
 }
 
 func BuildResp(id string, res interface{}) []byte {
-	data, ok := res.([]byte)
-
-	var err error
+	var (
+		data, ok = res.([]byte)
+		err      error
+	)
 	if !ok {
 		data, err = jsoniter.ConfigFastest.Marshal(res)
 		if err != nil {
