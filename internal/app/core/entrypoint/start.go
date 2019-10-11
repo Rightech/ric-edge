@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/Rightech/ric-edge/internal/app/core/rpc"
+	"github.com/Rightech/ric-edge/internal/pkg/core/action"
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
 	"github.com/Rightech/ric-edge/internal/pkg/core/mqtt"
 	"github.com/Rightech/ric-edge/internal/pkg/core/ws"
@@ -39,6 +40,26 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	}
 	defer db.Close()
 
+	api, err := cloud.New(
+		viper.GetString("core.cloud.url"),
+		viper.GetString("core.cloud.token"),
+		viper.GetString("version"),
+	)
+	if err != nil {
+		return err
+	}
+
+	var actionAPI rpc.Action
+
+	if viper.GetBool("core.action.enabled") {
+		actionAPI, err = action.New(viper.GetInt("core.action.port"))
+		if err != nil {
+			return err
+		}
+	} else {
+		actionAPI = action.Noop{}
+	}
+
 	// this channel needs to communicate between jsonrpc transport and rpc service
 	// in this channel transport send jsonrpc requests
 	requestsCh := make(chan []byte)
@@ -53,20 +74,11 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 
 	errCh := sock.Start(ctx)
 
-	api, err := cloud.New(
-		viper.GetString("core.cloud.url"),
-		viper.GetString("core.cloud.token"),
-		viper.GetString("version"),
-	)
-	if err != nil {
-		return err
-	}
-
 	rpc, err := rpc.New(
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
 		db, viper.GetBool("core.db.clean_state"),
-		sock, api, requestsCh)
+		sock, api, actionAPI, requestsCh)
 	if err != nil {
 		return err
 	}

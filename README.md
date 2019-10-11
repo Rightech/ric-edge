@@ -17,6 +17,10 @@ ws_port = 9000
     id = "" # id of edge
     rpc_timeout = "1m" # how long core should wait response from connector before return timeout error
 
+    [core.action]
+    enabled = false
+    port = 3000
+
     [core.db]
     path = "storage.db"
     clean_state = false # should internal state be cleaned on start or not

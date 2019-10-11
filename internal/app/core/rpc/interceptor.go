@@ -42,6 +42,12 @@ type api interface {
 	LoadObject(string) (cloud.Object, error)
 }
 
+type Action interface {
+	Add([]byte) ([]byte, error)
+	Delete(string) ([]byte, error)
+	Call(string, []byte) ([]byte, error)
+}
+
 type Service struct {
 	rpc        rpcCli
 	api        api
@@ -49,11 +55,12 @@ type Service struct {
 	model      cloud.Model
 	timeout    time.Duration
 	state      stater
+	action     Action
 	requestsCh <-chan []byte
 }
 
 func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
-	api api, requestsCh <-chan []byte) (Service, error) {
+	api api, action Action, requestsCh <-chan []byte) (Service, error) {
 	st, err := state.NewService(db, cleanStart)
 	if err != nil {
 		return Service{}, err
@@ -69,7 +76,7 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	s := Service{r, api, object, model, tm, st, requestsCh}
+	s := Service{r, api, object, model, tm, st, action, requestsCh}
 
 	go s.requestsListener()
 
@@ -89,8 +96,11 @@ func (s Service) requestsListener() {
 	}
 }
 
+const coreName = "core"
+
 func (s Service) Call(name string, payload []byte) []byte {
 	var data objx.Map
+
 	err := jsoniter.ConfigFastest.Unmarshal(payload, &data)
 	if err != nil {
 		return jsonrpc.BuildErrResp("", errUnmarshal.AddData("err", err.Error()))
@@ -107,6 +117,10 @@ func (s Service) Call(name string, payload []byte) []byte {
 	if id.IsNil() {
 		data.Set("id", nanoid.New())
 		changed = true
+	}
+
+	if name == coreName {
+		return s.handleCoreRequest(data)
 	}
 
 	device := data.Get("params.device")
@@ -162,5 +176,22 @@ func (s Service) updateState(method string, resp []byte) {
 			"method": method,
 			"error":  err,
 		}).Error("updateState: set")
+	}
+}
+
+func (s Service) handleCoreRequest(data objx.Map) []byte {
+	id := data.Get("id").Str()
+	method := data.Get("method").Str()
+
+	switch method {
+	case "add-action":
+		return s.addAction(id, data)
+	case "del-action":
+		return s.delAction(id, data)
+	case "call-action":
+		return s.callAction(id, data)
+	default:
+		return jsonrpc.BuildErrResp(
+			id, jsonrpc.ErrMethodNotFound.AddData("method", method))
 	}
 }
