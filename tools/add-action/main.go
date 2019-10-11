@@ -83,7 +83,7 @@ func main() {
 		return
 	}
 
-	token = client.Publish("ric-edge/core/command", 2, false, getPayload())
+	token = client.Publish("ric-edge/action/command", 2, false, getPayload())
 	if token.Wait() && token.Error() != nil {
 		log.Error(token.Error())
 		return

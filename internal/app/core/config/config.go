@@ -26,9 +26,6 @@ import (
 func Setup(version ...string) {
 	config.Init(version)
 
-	viper.SetDefault("core.action.enabled", false)
-	viper.SetDefault("core.action.port", 3000)
-
 	viper.SetDefault("core.rpc_timeout", "1m")
 	viper.SetDefault("core.db.path", "storage.db")
 	viper.SetDefault("core.db.clean_state", false)
