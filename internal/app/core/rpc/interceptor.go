@@ -130,14 +130,19 @@ func (s Service) Call(name string, payload []byte) []byte {
 		if !timer.Stop() {
 			<-timer.C
 		}
-		s.updateState(data.Get("method").Str(), msg)
+		s.updateState(data, msg)
 		return msg
 	case <-timer.C:
 		return jsonrpc.BuildErrResp(data.Get("id").Str(), errTimeout)
 	}
 }
 
-func (s Service) updateState(method string, resp []byte) {
+func (s Service) updateState(req objx.Map, resp []byte) {
+	param := req.Get("_param").Str()
+	if param == "" {
+		return
+	}
+
 	result := struct {
 		Result jsoniter.RawMessage
 	}{}
@@ -146,7 +151,7 @@ func (s Service) updateState(method string, resp []byte) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"value":  string(resp),
-			"method": method,
+			"method": req.Get("method").Str(),
 			"error":  err,
 		}).Error("updateState: unmarshal json")
 		return
@@ -156,11 +161,12 @@ func (s Service) updateState(method string, resp []byte) {
 		return
 	}
 
-	err = s.state.Set(method, result.Result)
+	err = s.state.Set(param, result.Result)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"value":  string(resp),
-			"method": method,
+			"param":  param,
+			"method": req.Get("method").Str(),
 			"error":  err,
 		}).Error("updateState: set")
 	}
