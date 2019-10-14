@@ -73,7 +73,7 @@ type ActionConfig struct {
 	Connector string
 	Type      string
 	Interval  string
-	Payload   string
+	Payload   []byte
 }
 
 func (m *Model) Prepare(o Object) error {
@@ -92,34 +92,34 @@ type params struct {
 	Params  map[string]interface{} `json:"params"`
 }
 
-func fillPayload(payload string, data map[string]interface{}) (string, error) {
+func fillPayload(payload string, data map[string]interface{}) ([]byte, error) {
 	var pld params
 
 	err := jsoniter.ConfigFastest.UnmarshalFromString(payload, &pld)
 	if err != nil {
-		return "", fmt.Errorf("prepare: fill payload: unmarshal: %w", err)
+		return nil, fmt.Errorf("prepare: fill payload: unmarshal: %w", err)
 	}
 
 	for k, v := range pld.Params {
 		vv, ok := v.(string)
 		if !ok {
-			return "", errors.New("prepare: wrong payload params type")
+			return nil, errors.New("prepare: wrong payload params type")
 		}
 
 		if strings.HasPrefix(vv, "{{") &&
 			strings.HasSuffix(vv, "}}") {
 			val, ok := data[vv[2:len(vv)-2]]
 			if !ok {
-				return "", errors.New("prepare: " + vv[2:len(vv)-2] + "not found in data")
+				return nil, errors.New("prepare: " + vv[2:len(vv)-2] + "not found in data")
 			}
 
 			pld.Params[k] = val
 		}
 	}
 
-	res, err := jsoniter.ConfigFastest.MarshalToString(pld)
+	res, err := jsoniter.ConfigFastest.Marshal(pld)
 	if err != nil {
-		return "", fmt.Errorf("prepare: fill payload: marshal: %w", err)
+		return nil, fmt.Errorf("prepare: fill payload: marshal: %w", err)
 	}
 
 	return res, nil

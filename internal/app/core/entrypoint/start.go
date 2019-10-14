@@ -23,6 +23,7 @@ import (
 
 	"github.com/Rightech/ric-edge/internal/app/core/rpc"
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
+	"github.com/Rightech/ric-edge/internal/pkg/core/jobs"
 	"github.com/Rightech/ric-edge/internal/pkg/core/mqtt"
 	"github.com/Rightech/ric-edge/internal/pkg/core/ws"
 	"github.com/etcd-io/bbolt"
@@ -66,7 +67,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
 		db, viper.GetBool("core.db.clean_state"),
-		sock, api, requestsCh)
+		sock, api, jobs.New(), requestsCh)
 	if err != nil {
 		return err
 	}

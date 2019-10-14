@@ -17,6 +17,8 @@
 package rpc
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
@@ -42,9 +44,14 @@ type api interface {
 	LoadObject(string) (cloud.Object, error)
 }
 
+type jober interface {
+	AddFunc(string, func()) error
+}
+
 type Service struct {
 	rpc        rpcCli
 	api        api
+	job        jober
 	obj        cloud.Object
 	model      cloud.Model
 	timeout    time.Duration
@@ -53,7 +60,7 @@ type Service struct {
 }
 
 func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
-	api api, requestsCh <-chan []byte) (Service, error) {
+	api api, j jober, requestsCh <-chan []byte) (Service, error) {
 	st, err := state.NewService(db, cleanStart)
 	if err != nil {
 		return Service{}, err
@@ -74,12 +81,11 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	s := Service{r, api, object, model, tm, st, requestsCh}
+	s := Service{r, api, j, object, model, tm, st, requestsCh}
 
-	go s.autoCaller(model.Actions())
 	go s.requestsListener()
 
-	return s, nil
+	return s, s.spawnJobs(model.Actions())
 }
 
 var (
@@ -95,9 +101,29 @@ func (s Service) requestsListener() {
 	}
 }
 
-func (s Service) autoCaller(actions map[string]cloud.ActionConfig) {
-	// TODO: spawn actions
-	log.Info(actions)
+func (s Service) buildJobFn(v cloud.ActionConfig) func() {
+	return func() {
+		resp := s.Call(v.Connector, v.Payload)
+		log.WithField("r", string(resp)).Debug("cron job response")
+	}
+}
+
+func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
+	for _, v := range actions {
+		switch v.Type {
+		case "schedule":
+			err := s.job.AddFunc(v.Interval, s.buildJobFn(v))
+			if err != nil {
+				return fmt.Errorf("spawn [%s]: %w", v.ID, err)
+			}
+		case "subscribe":
+			s.buildJobFn(v)()
+		default:
+			return errors.New("spawn: wrong type " + v.Type)
+		}
+	}
+
+	return nil
 }
 
 func (s Service) Call(name string, payload []byte) []byte {
