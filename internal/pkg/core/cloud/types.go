@@ -88,7 +88,6 @@ func (m *Model) Prepare(o Object) error {
 
 type params struct {
 	JSONRPC string                 `json:"jsonrpc"`
-	ID      jsoniter.RawMessage    `json:"id"`
 	Method  string                 `json:"method"`
 	Params  map[string]interface{} `json:"params"`
 }
