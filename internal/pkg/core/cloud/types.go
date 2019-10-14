@@ -110,7 +110,7 @@ func fillPayload(payload string, data map[string]interface{}) ([]byte, error) {
 			strings.HasSuffix(vv, "}}") {
 			val, ok := data[vv[2:len(vv)-2]]
 			if !ok {
-				return nil, errors.New("prepare: " + vv[2:len(vv)-2] + "not found in data")
+				return nil, errors.New("prepare: " + vv[2:len(vv)-2] + " not found in data")
 			}
 
 			pld.Params[k] = val
