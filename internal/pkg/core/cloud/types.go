@@ -78,10 +78,11 @@ type command struct {
 }
 
 type ActionConfig struct {
-	ID       string
-	Type     string
-	Interval string
-	Payload  string
+	ID        string
+	Connector string
+	Type      string
+	Interval  string
+	Payload   string
 }
 
 func (m *Model) Prepare(o Object) {
@@ -90,7 +91,7 @@ func (m *Model) Prepare(o Object) {
 	commands := make(map[string]Children)
 	actionCommand := make(map[string]command)
 
-	m.walk(commands, actionCommand, m.Data.Children)
+	m.walk(nil, commands, actionCommand, m.Data.Children)
 	m.afterWalk(commands, actionCommand, o)
 }
 
@@ -110,7 +111,8 @@ func fillPayload(payload string, data map[string]interface{}) string {
 	}
 
 	for k, v := range pld.Params {
-		if vv, ok := v.(string); ok && strings.HasPrefix(vv, "{{") && strings.HasSuffix(vv, "}}") {
+		if vv, ok := v.(string); ok && strings.HasPrefix(vv, "{{") &&
+			strings.HasSuffix(vv, "}}") {
 			val, ok := data[vv[2:len(vv)-2]]
 			if !ok {
 				continue
@@ -162,10 +164,17 @@ func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command,
 	}
 }
 
-func (m *Model) walk(commands map[string]Children, acmd map[string]command, children []Children) {
+func (m *Model) walk(path []string, commands map[string]Children,
+	acmd map[string]command, children []Children) {
 	for _, c := range children {
 		if !c.Active {
 			continue
+		}
+
+		// add id to path
+		// this id required to get connector type
+		if c.Type == "subsystem" {
+			path = append(path, c.ID)
 		}
 
 		if c.Type == "action" {
@@ -176,9 +185,10 @@ func (m *Model) walk(commands map[string]Children, acmd map[string]command, chil
 
 		if c.Edge.Read.Command != "" {
 			ac := ActionConfig{
-				ID:       c.ID,
-				Type:     c.Edge.Read.Type,
-				Interval: c.Edge.Read.Interval,
+				ID:        c.ID,
+				Connector: path[len(path)-2],
+				Type:      c.Edge.Read.Type,
+				Interval:  c.Edge.Read.Interval,
 			}
 
 			for _, cc := range c.Children {
@@ -195,6 +205,10 @@ func (m *Model) walk(commands map[string]Children, acmd map[string]command, chil
 			continue
 		}
 
-		m.walk(commands, acmd, c.Children)
+		m.walk(path, commands, acmd, c.Children)
+		n := len(path) - 1
+		if n > -1 {
+			path = path[:n]
+		}
 	}
 }
