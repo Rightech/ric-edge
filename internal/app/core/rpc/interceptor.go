@@ -69,6 +69,8 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
+	model.Prepare(object)
+
 	s := Service{r, api, object, model, tm, st, requestsCh}
 
 	go s.requestsListener()
@@ -112,7 +114,7 @@ func (s Service) Call(name string, payload []byte) []byte {
 
 	device := data.Get("params.device")
 	if !device.IsNil() && device.IsStr() {
-		data.Set("params.device", s.obj.Config.Devs.Devs.Get(device.Str()))
+		data.Set("params.device", s.obj.Config.Get(device.Str()))
 		changed = true
 	}
 
