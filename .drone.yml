@@ -1,24 +1,33 @@
+---
 kind: pipeline
+type: docker
 name: default
+
+platform:
+  os: linux
+  arch: amd64
 
 steps:
 - name: build
   image: golang:1.13
-  environment:
-    GOFLAGS: -mod=vendor
   commands:
   - apt-get update && apt-get install -y upx
   - make buildall VERSION=${DRONE_TAG##v}
+  environment:
+    GOFLAGS: -mod=vendor
+
 - name: publish
   image: plugins/github-release
   settings:
     api_key:
       from_secret: github_token
-    files: build/*
     checksum:
-      - sha256
-      - sha512
+    - sha256
+    - sha512
+    files: build/*
 
 trigger:
   event:
   - tag
+
+...
