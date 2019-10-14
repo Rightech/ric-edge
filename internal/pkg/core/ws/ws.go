@@ -47,6 +47,7 @@ const (
 
 // websocket connection with logger and session id
 type conn struct {
+	cmx *sync.Mutex
 	*websocket.Conn
 	l         *log.Entry
 	name, sid string
@@ -196,6 +197,7 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 
 	wsc := conn{
 		Conn: c, l: logger, name: connectorType, sid: sid,
+		cmx: new(sync.Mutex),
 		rmx: new(sync.Mutex),
 		req: make(map[string]chan<- []byte, 10),
 	}
@@ -210,7 +212,9 @@ func (s *Service) closeConnOnErr(conn conn) {
 	conn.rmx.Lock()
 	conn.req = nil
 	conn.rmx.Unlock()
+	conn.cmx.Lock()
 	conn.Close()
+	conn.cmx.Unlock()
 
 	s.mx.Lock()
 	delete(s.conns, conn.name)
@@ -286,7 +290,9 @@ func (s *Service) Call(name, id string, payload []byte) <-chan []byte {
 		return resp
 	}
 
+	conn.cmx.Lock()
 	err := conn.WriteMessage(websocket.TextMessage, payload)
+	conn.cmx.Unlock()
 	if err != nil {
 		s.closeConnOnErr(conn)
 
