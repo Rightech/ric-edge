@@ -69,10 +69,14 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	model.Prepare(object)
+	err = model.Prepare(object)
+	if err != nil {
+		return Service{}, err
+	}
 
 	s := Service{r, api, object, model, tm, st, requestsCh}
 
+	go s.autoCaller(model.Actions())
 	go s.requestsListener()
 
 	return s, nil
@@ -89,6 +93,11 @@ func (s Service) requestsListener() {
 		// TODO: add implementation of call handler
 		log.Info(string(msg))
 	}
+}
+
+func (s Service) autoCaller(actions map[string]cloud.ActionConfig) {
+	// TODO: spawn actions
+	log.Info(actions)
 }
 
 func (s Service) Call(name string, payload []byte) []byte {

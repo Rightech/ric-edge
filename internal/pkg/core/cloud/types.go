@@ -17,6 +17,8 @@
 package cloud
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
@@ -74,14 +76,14 @@ type ActionConfig struct {
 	Payload   string
 }
 
-func (m *Model) Prepare(o Object) {
+func (m *Model) Prepare(o Object) error {
 	m.actions = make(map[string]ActionConfig)
 
 	commands := make(map[string]Children)
 	actionCommand := make(map[string]command)
 
 	m.walk(nil, commands, actionCommand, m.Data.Children)
-	m.afterWalk(commands, actionCommand, o)
+	return m.afterWalk(commands, actionCommand, o)
 }
 
 type params struct {
@@ -91,20 +93,25 @@ type params struct {
 	Params  map[string]interface{} `json:"params"`
 }
 
-func fillPayload(payload string, data map[string]interface{}) string {
+func fillPayload(payload string, data map[string]interface{}) (string, error) {
 	var pld params
 
 	err := jsoniter.ConfigFastest.UnmarshalFromString(payload, &pld)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("prepare: fill payload: unmarshal: %w", err)
 	}
 
 	for k, v := range pld.Params {
-		if vv, ok := v.(string); ok && strings.HasPrefix(vv, "{{") &&
+		vv, ok := v.(string)
+		if !ok {
+			return "", errors.New("prepare: wrong payload params type")
+		}
+
+		if strings.HasPrefix(vv, "{{") &&
 			strings.HasSuffix(vv, "}}") {
 			val, ok := data[vv[2:len(vv)-2]]
 			if !ok {
-				continue
+				return "", errors.New("prepare: " + vv[2:len(vv)-2] + "not found in data")
 			}
 
 			pld.Params[k] = val
@@ -113,44 +120,52 @@ func fillPayload(payload string, data map[string]interface{}) string {
 
 	res, err := jsoniter.ConfigFastest.MarshalToString(pld)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("prepare: fill payload: marshal: %w", err)
 	}
 
-	return res
+	return res, nil
 }
 
-func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command, o Object) {
+func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command, o Object) (err error) {
 	for k, v := range m.actions {
-		if vv, ok := commands[acmd[v.ID].Command]; ok {
-			payload, ok := vv.Params["payload"].(string)
-			if !ok {
-				// remove action if payload not string
-				delete(m.actions, k)
-				continue
-			}
-
-			for k, val := range acmd[v.ID].Params {
-				// fill params template from config
-				if vv, ok := val.(string); ok && strings.HasPrefix(vv, "{{") &&
-					strings.HasSuffix(vv, "}}") {
-					keyPath := vv[2 : len(vv)-2]
-					keyPath = strings.ReplaceAll(keyPath, "object.config.", "")
-
-					acmd[v.ID].Params[k] = o.Config.Get(keyPath).Data()
-				}
-			}
-
-			acmd[v.ID].Params["parent.id"] = v.ID
-			v.Payload = fillPayload(payload, acmd[v.ID].Params)
-
-			// update action in map
-			m.actions[k] = v
-			continue
+		vv, ok := commands[acmd[v.ID].Command]
+		if !ok {
+			err = errors.New("prepare: command not found in commands")
+			return
 		}
 
-		// if command not found remove action
-		delete(m.actions, k)
+		payload, ok := vv.Params["payload"].(string)
+		if !ok {
+			err = errors.New("prepare: payload should be string")
+			return
+		}
+
+		for k, val := range acmd[v.ID].Params {
+			// fill params template from config
+			vv, ok := val.(string)
+			if !ok {
+				return errors.New("prepare: wrong params value type")
+			}
+
+			if strings.HasPrefix(vv, "{{") && strings.HasSuffix(vv, "}}") {
+				keyPath := vv[2 : len(vv)-2]
+				keyPath = strings.ReplaceAll(keyPath, "object.config.", "")
+
+				acmd[v.ID].Params[k] = o.Config.Get(keyPath).Data()
+			}
+		}
+
+		acmd[v.ID].Params["parent.id"] = v.ID
+		v.Payload, err = fillPayload(payload, acmd[v.ID].Params)
+		if err != nil {
+			return
+		}
+
+		// update action in map
+		m.actions[k] = v
 	}
+
+	return nil
 }
 
 func (m *Model) walk(path []string, commands map[string]Children,
