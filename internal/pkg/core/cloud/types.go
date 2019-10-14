@@ -23,17 +23,6 @@ import (
 	"github.com/stretchr/objx"
 )
 
-type DeviceMap map[string]string
-
-func (d DeviceMap) Get(name string) string {
-	v, ok := d[name]
-	if ok {
-		return v
-	}
-
-	return name
-}
-
 type Object struct {
 	ID     string `json:"_id"`
 	Models struct {
