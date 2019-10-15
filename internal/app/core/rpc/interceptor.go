@@ -77,11 +77,6 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	err = model.Prepare(object)
-	if err != nil {
-		return Service{}, err
-	}
-
 	s := Service{r, api, j, object, model, tm, st, requestsCh}
 
 	go s.requestsListener()

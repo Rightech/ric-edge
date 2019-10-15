@@ -76,14 +76,14 @@ type ActionConfig struct {
 	Payload   []byte
 }
 
-func (m *Model) Prepare(o Object) error {
+func (m *Model) prepare() error {
 	m.actions = make(map[string]ActionConfig)
 
 	commands := make(map[string]Children)
 	actionCommand := make(map[string]command)
 
 	m.walk(nil, commands, actionCommand, m.Data.Children)
-	return m.afterWalk(commands, actionCommand, o)
+	return m.afterWalk(commands, actionCommand)
 }
 
 type params struct {
@@ -125,7 +125,7 @@ func fillPayload(payload string, data map[string]interface{}) ([]byte, error) {
 	return res, nil
 }
 
-func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command, o Object) (err error) {
+func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command) (err error) {
 	for k, v := range m.actions {
 		vv, ok := commands[acmd[v.ID].Command]
 		if !ok {

@@ -79,6 +79,11 @@ func (s Service) LoadModel(id string) (m Model, err error) {
 	}
 
 	err = jsoniter.NewDecoder(resp.Body).Decode(&m)
+	if err != nil {
+		return
+	}
+
+	err = m.prepare()
 
 	return
 }
