@@ -139,21 +139,6 @@ func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command,
 			return
 		}
 
-		for k, val := range acmd[v.ID].Params {
-			// fill params template from config
-			vv, ok := val.(string)
-			if !ok {
-				return errors.New("prepare: wrong params value type")
-			}
-
-			if strings.HasPrefix(vv, "{{") && strings.HasSuffix(vv, "}}") {
-				keyPath := vv[2 : len(vv)-2]
-				keyPath = strings.ReplaceAll(keyPath, "object.config.", "")
-
-				acmd[v.ID].Params[k] = o.Config.Get(keyPath).Data()
-			}
-		}
-
 		acmd[v.ID].Params["parent.id"] = v.ID
 		v.Payload, err = fillPayload(payload, acmd[v.ID].Params)
 		if err != nil {

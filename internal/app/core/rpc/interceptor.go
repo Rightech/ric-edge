@@ -19,6 +19,7 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
@@ -192,8 +193,9 @@ func (s Service) Call(name string, payload []byte) []byte {
 	}
 
 	device := data.Get("params.device")
-	if !device.IsNil() && device.IsStr() {
-		data.Set("params.device", s.obj.Config.Get(device.Str()))
+	if !device.IsNil() && device.IsStr() && strings.HasPrefix(device.Str(), "{{") {
+		value := strings.ReplaceAll(strings.Trim(device.Str(), "{}"), "object.config.", "")
+		data.Set("params.device", s.obj.Config.Get(value).Str())
 		changed = true
 	}
 

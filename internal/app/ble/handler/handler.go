@@ -125,9 +125,9 @@ func mapToList(mp map[string]*dev) []dev {
 }
 
 func (s Service) discover(params objx.Map) (interface{}, error) {
-	address := params.Get("address").Str()
+	address := params.Get("device").Str()
 	if address == "" {
-		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "empty address")
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "empty device")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -151,9 +151,9 @@ func (s Service) discover(params objx.Map) (interface{}, error) {
 }
 
 func parseRequest(params objx.Map) (a string, s ble.UUID, c ble.UUID, err error) {
-	a = params.Get("address").Str()
+	a = params.Get("device").Str()
 	if a == "" {
-		err = jsonrpc.ErrInvalidParams.AddData("msg", "empty address")
+		err = jsonrpc.ErrInvalidParams.AddData("msg", "empty device")
 		return
 	}
 
@@ -305,7 +305,7 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 }
 
 func (s Service) subscribeCancel(params objx.Map) (interface{}, error) {
-	address := params.Get("address").Str()
+	address := params.Get("device").Str()
 	cli, ok := s.conns[address]
 	if !ok {
 		return nil, jsonrpc.ErrInvalidRequest.AddData("msg", "sub not found")
