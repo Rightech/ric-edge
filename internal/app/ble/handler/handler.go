@@ -287,16 +287,11 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	nfSrv := s.rpc.NewNotification()
+	nfSrv := s.rpc.NewNotification(params)
 
 	err = cli.Subscribe(ch[0], params.Get("indicator").Bool(), func(req []byte) {
 		val := binary.LittleEndian.Uint32(req)
-		nfSrv.Send(map[string]interface{}{
-			"address":             address,
-			"service_uuid":        srvUUID,
-			"characteristic_uuid": chUUID,
-			"value":               val,
-		})
+		nfSrv.Send(val)
 	})
 	if err != nil {
 		return nil, err

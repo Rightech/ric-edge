@@ -96,8 +96,42 @@ var (
 
 func (s Service) requestsListener() {
 	for msg := range s.requestsCh {
-		// TODO: add implementation of call handler
-		log.Info(string(msg))
+		request := struct {
+			Params struct {
+				RequestParams objx.Map `json:"__request_params"`
+				Value         jsoniter.RawMessage
+			}
+		}{}
+
+		err := jsoniter.ConfigFastest.Unmarshal(msg, &request)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"value": string(msg),
+				"error": err,
+			}).Error("updateState: unmarshal json")
+			return
+		}
+
+		if len(request.Params.Value) == 0 {
+			log.WithField("value", string(msg)).
+				Error("empty value in notification")
+			return
+		}
+
+		param := request.Params.RequestParams.Get("_param").Str()
+		if param == "" {
+			log.WithField("value", string(msg)).Error("empty _param in request")
+			return
+		}
+
+		err = s.state.Set(param, request.Params.Value)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"value": string(msg),
+				"param": param,
+				"error": err,
+			}).Error("request set state: set")
+		}
 	}
 }
 
@@ -106,6 +140,16 @@ func (s Service) buildJobFn(v cloud.ActionConfig) func() {
 		resp := s.Call(v.Connector, v.Payload)
 		log.WithField("r", string(resp)).Debug("cron job response")
 	}
+}
+
+func (s Service) subscribe(v cloud.ActionConfig) {
+	resp := s.Call(v.Connector, v.Payload)
+	idVal := jsoniter.ConfigFastest.Get(resp, "process_id")
+	if idVal.LastError() != nil {
+		log.WithError(idVal.LastError()).Error("process_id not found")
+	}
+
+	log.Debug("start subscribe with process_id: ", idVal.ToString())
 }
 
 func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
@@ -117,7 +161,7 @@ func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
 				return fmt.Errorf("spawn [%s]: %w", v.ID, err)
 			}
 		case "subscribe":
-			s.buildJobFn(v)()
+			s.subscribe(v)
 		default:
 			return errors.New("spawn: wrong type " + v.Type)
 		}

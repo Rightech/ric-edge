@@ -38,7 +38,7 @@ type Caller interface {
 }
 
 type RPC interface {
-	NewNotification() NotificationService
+	NewNotification(params objx.Map) NotificationService
 }
 
 const (
@@ -147,13 +147,19 @@ type response struct {
 }
 
 type NotificationService struct {
-	s     Service
-	id    string
-	sendL *sync.Mutex
+	s             Service
+	id            string
+	sendL         *sync.Mutex
+	requestParams objx.Map
 }
 
-func (s Service) NewNotification() NotificationService {
-	return NotificationService{s: s, id: nanoid.New(), sendL: new(sync.Mutex)}
+func (s Service) NewNotification(params objx.Map) NotificationService {
+	return NotificationService{
+		s:             s,
+		id:            nanoid.New(),
+		sendL:         new(sync.Mutex),
+		requestParams: params,
+	}
 }
 
 func (n NotificationService) toResult() interface{} {
@@ -165,17 +171,21 @@ func (n NotificationService) ID() string {
 }
 
 // Send message (as jsonrpc notification call) to core
-func (n NotificationService) Send(params map[string]interface{}) {
+func (n NotificationService) Send(value interface{}) {
 	// this lock prevent multiple calls when client in reconnect state
 	n.sendL.Lock()
 	defer n.sendL.Unlock()
 
-	params["__process_id"] = n.id
+	payload := map[string]interface{}{
+		"__request_params": n.requestParams,
+		"__process_id":     n.id,
+		"value":            value,
+	}
 
 	req := Request{
 		JSONRPC: jsonRPCVersion,
 		Method:  "notification",
-		Params:  params,
+		Params:  payload,
 	}
 
 	for {
