@@ -63,6 +63,10 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 
 	errCh := sock.Start(ctx)
 
+	// wait while connectors reconnects
+	// before continue
+	time.Sleep(2 * time.Second)
+
 	rpc, err := rpc.New(
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
@@ -71,10 +75,6 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	if err != nil {
 		return err
 	}
-
-	// wait while connectors reconnects
-	// before continue
-	time.Sleep(time.Second)
 
 	mqtt, err := mqtt.New(
 		viper.GetString("core.mqtt.url"),

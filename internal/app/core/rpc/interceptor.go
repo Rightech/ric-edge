@@ -119,17 +119,22 @@ func (s Service) requestsListener() {
 			return
 		}
 
-		param := request.Params.RequestParams.Get("_param").Str()
-		if param == "" {
-			log.WithField("value", string(msg)).Error("empty _param in request")
+		parent := request.Params.RequestParams.Get("_parent").Str()
+		if parent == "" {
+			log.WithField("value", string(msg)).Error("empty _parent in request")
 			return
 		}
 
-		err = s.state.Set(param, request.Params.Value)
+		log.WithFields(log.Fields{
+			"parent": parent,
+			"value":  string(request.Params.Value),
+		}).Debug("new notification")
+
+		err = s.state.Set(parent, request.Params.Value)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"value": string(msg),
-				"param": param,
+				"param": parent,
 				"error": err,
 			}).Error("request set state: set")
 		}
@@ -145,9 +150,10 @@ func (s Service) buildJobFn(v cloud.ActionConfig) func() {
 
 func (s Service) subscribe(v cloud.ActionConfig) {
 	resp := s.Call(v.Connector, v.Payload)
-	idVal := jsoniter.ConfigFastest.Get(resp, "process_id")
+	idVal := jsoniter.ConfigFastest.Get(resp, "result").Get("process_id")
 	if idVal.LastError() != nil {
 		log.WithError(idVal.LastError()).Error("process_id not found")
+		return
 	}
 
 	log.Debug("start subscribe with process_id: ", idVal.ToString())
@@ -221,8 +227,8 @@ func (s Service) Call(name string, payload []byte) []byte {
 }
 
 func (s Service) updateState(req objx.Map, resp []byte) {
-	param := req.Get("_param").Str()
-	if param == "" {
+	parent := req.Get("_parent").Str()
+	if parent == "" {
 		return
 	}
 
@@ -244,11 +250,11 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 		return
 	}
 
-	err = s.state.Set(param, result.Result)
+	err = s.state.Set(parent, result.Result)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"value":  string(resp),
-			"param":  param,
+			"parent": parent,
 			"method": req.Get("method").Str(),
 			"error":  err,
 		}).Error("updateState: set")
