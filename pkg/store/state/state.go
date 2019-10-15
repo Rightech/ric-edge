@@ -18,9 +18,12 @@ package state
 
 import (
 	"errors"
-	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/etcd-io/bbolt"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/stretchr/objx"
 )
 
 type DB interface {
@@ -30,6 +33,7 @@ type DB interface {
 
 const (
 	bucketName = "state"
+	keyPrefix  = "edge."
 )
 
 var (
@@ -37,7 +41,9 @@ var (
 )
 
 type Service struct {
-	db DB
+	db    DB
+	mx    *sync.RWMutex
+	state objx.Map
 }
 
 func NewService(db DB, cleanStart bool) (Service, error) {
@@ -56,33 +62,75 @@ func NewService(db DB, cleanStart bool) (Service, error) {
 		return err
 	})
 
-	return Service{db}, err
-}
-
-func (s Service) Get(key string) ([]byte, error) {
-	var data []byte
-
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		bk := tx.Bucket([]byte(bucketName))
-		data = bk.Get([]byte(key))
-		return nil
-	})
-
-	if len(data) == 0 {
-		return nil, fmt.Errorf("%w: %s", ErrNotFound, key)
+	if err != nil {
+		return Service{}, err
 	}
 
-	return data, err
+	s := Service{db: db, mx: new(sync.RWMutex)}
+
+	values, err := s.getAll()
+	if err != nil {
+		return Service{}, err
+	}
+
+	s.mx.Lock()
+	s.state = convert(values)
+	s.mx.Unlock()
+
+	return s, nil
+}
+
+func (s Service) Get(key string) map[string]interface{} {
+	s.mx.RLock()
+	val := s.state.Get(key)
+	s.mx.RUnlock()
+	if val.IsNil() {
+		return nil
+	}
+
+	vv := val.Data().([]byte)
+
+	return Convert(key, vv)
 }
 
 func (s Service) Set(key string, v []byte) error {
-	return s.db.Update(func(tx *bbolt.Tx) error {
+	err := s.db.Update(func(tx *bbolt.Tx) error {
 		bk := tx.Bucket([]byte(bucketName))
 		return bk.Put([]byte(key), v)
 	})
+	if err != nil {
+		return err
+	}
+
+	s.mx.Lock()
+	s.state.Set(key, jsoniter.RawMessage(v))
+	s.mx.Unlock()
+
+	return nil
 }
 
-func (s Service) GetAll() (map[string][]byte, error) {
+func Convert(key string, v []byte) map[string]interface{} {
+	key = strings.TrimPrefix(key, keyPrefix)
+
+	data := make(objx.Map, 1)
+
+	data.Set(key, jsoniter.RawMessage(v))
+
+	return data
+}
+
+func convert(state map[string][]byte) map[string]interface{} {
+	data := make(objx.Map, len(state))
+
+	for k, v := range state {
+		k = strings.TrimPrefix(k, keyPrefix)
+		data.Set(k, jsoniter.RawMessage(v))
+	}
+
+	return data
+}
+
+func (s Service) getAll() (map[string][]byte, error) {
 	var values map[string][]byte
 
 	err := s.db.View(func(tx *bbolt.Tx) error {

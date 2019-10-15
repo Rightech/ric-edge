@@ -29,13 +29,20 @@ import (
 )
 
 type Service struct {
-	cli paho.Client
-	rpc rpc
+	cli    paho.Client
+	rpc    rpc
+	toSend <-chan []byte
+}
+
+type SendPayload struct {
+	Topic   string
+	Payload []byte
 }
 
 const (
 	requestTopic  = "ric-edge/+/command" // + - connector type
 	responseTopic = "ric-edge/%s/response"
+	stateTopic    = "ric-edge/sys/state"
 	qos           = 1
 )
 
@@ -43,7 +50,7 @@ type rpc interface {
 	Call(string, []byte) []byte
 }
 
-func New(url, clientID, cert, key string, db mqtt.DB, cli rpc) (Service, error) {
+func New(url, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) (Service, error) {
 	var certs []tls.Certificate
 
 	if cert != "" && key != "" {
@@ -82,16 +89,39 @@ func New(url, clientID, cert, key string, db mqtt.DB, cli rpc) (Service, error) 
 		return Service{}, token.Error()
 	}
 
-	s := Service{client, cli}
+	s := Service{client, cli, sCh}
 
 	token = client.Subscribe(requestTopic, qos, s.rpcCallback)
 	if token.Wait() && token.Error() != nil {
 		return Service{}, token.Error()
 	}
 
+	go s.publishListener()
+
 	log.Info("mqtt ready")
 
 	return s, nil
+}
+
+func (s Service) publishListener() {
+	for p := range s.toSend {
+		err := s.publish(stateTopic, p)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"payload": string(p),
+				"error":   err,
+			}).Error("err publish state")
+		}
+	}
+}
+
+func (s Service) publish(topic string, payload []byte) error {
+	token := s.cli.Publish(topic, qos, false, payload)
+	if token.WaitTimeout(time.Minute) && token.Error() != nil {
+		return token.Error()
+	}
+
+	return nil
 }
 
 func (s Service) rpcCallback(cli paho.Client, msg paho.Message) {
@@ -99,13 +129,13 @@ func (s Service) rpcCallback(cli paho.Client, msg paho.Message) {
 
 	resp := s.rpc.Call(connectorID, msg.Payload())
 
-	token := s.cli.Publish(fmt.Sprintf(responseTopic, connectorID), qos, false, resp)
-	if token.WaitTimeout(time.Minute) && token.Error() != nil {
+	err := s.publish(fmt.Sprintf(responseTopic, connectorID), resp)
+	if err != nil {
 		log.WithFields(log.Fields{
 			"response":  string(resp),
 			"connector": connectorID,
 			"request":   string(msg.Payload()),
-			"error":     token.Error(),
+			"error":     err,
 		}).Error("err publish response")
 	}
 }

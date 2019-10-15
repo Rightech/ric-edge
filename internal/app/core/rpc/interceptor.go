@@ -32,9 +32,8 @@ import (
 )
 
 type stater interface {
-	Get(string) ([]byte, error)
+	Get(string) map[string]interface{}
 	Set(string, []byte) error
-	GetAll() (map[string][]byte, error)
 }
 
 type rpcCli interface {
@@ -59,10 +58,11 @@ type Service struct {
 	timeout    time.Duration
 	state      stater
 	requestsCh <-chan []byte
+	stateCh    chan<- []byte
 }
 
 func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
-	api api, j jober, requestsCh <-chan []byte) (Service, error) {
+	api api, j jober, stateCh chan<- []byte, requestsCh <-chan []byte) (Service, error) {
 	st, err := state.NewService(db, cleanStart)
 	if err != nil {
 		return Service{}, err
@@ -78,7 +78,7 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	s := Service{r, api, j, object, model, tm, st, requestsCh}
+	s := Service{r, api, j, object, model, tm, st, requestsCh, stateCh}
 
 	go s.requestsListener()
 
@@ -90,6 +90,20 @@ var (
 	errUnmarshal = jsonrpc.ErrParse.AddData("msg", "json unmarshal error")
 	errBadIDType = jsonrpc.ErrInternal.AddData("msg", "id should be string or null")
 )
+
+func (s Service) sendState(parent string, value []byte) {
+	st, err := jsoniter.ConfigFastest.Marshal(state.Convert(parent, value))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"value": string(value),
+			"error": err,
+		}).Error("sendState: marshal json")
+	}
+
+	// fmt.Println(string(st))
+
+	s.stateCh <- st
+}
 
 func (s Service) requestsListener() {
 	for msg := range s.requestsCh {
@@ -105,26 +119,27 @@ func (s Service) requestsListener() {
 			log.WithFields(log.Fields{
 				"value": string(msg),
 				"error": err,
-			}).Error("updateState: unmarshal json")
+			}).Error("requestsListener: unmarshal json")
 			continue
 		}
 
 		if len(request.Params.Value) == 0 {
 			log.WithField("value", string(msg)).
-				Error("empty value in notification")
+				Error("requestsListener: empty value in notification")
 			continue
 		}
 
 		parent := request.Params.RequestParams.Get("_parent").Str()
 		if parent == "" {
-			log.WithField("value", string(msg)).Error("empty _parent in request")
+			log.WithField("value", string(msg)).
+				Error("requestsListener: empty _parent in request")
 			continue
 		}
 
 		log.WithFields(log.Fields{
 			"parent": parent,
 			"value":  string(request.Params.Value),
-		}).Debug("new notification")
+		}).Debug("requestsListener: new notification")
 
 		err = s.state.Set(parent, request.Params.Value)
 		if err != nil {
@@ -132,9 +147,10 @@ func (s Service) requestsListener() {
 				"value": string(msg),
 				"param": parent,
 				"error": err,
-			}).Error("request set state: set")
+			}).Error("requestsListener: set state")
 			continue
 		}
+		s.sendState(parent, request.Params.Value)
 	}
 }
 
@@ -165,7 +181,7 @@ func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
 				return fmt.Errorf("spawn [%s]: %w", v.ID, err)
 			}
 		case "subscribe":
-			s.subscribe(v)
+			go s.subscribe(v)
 		default:
 			return errors.New("spawn: wrong type " + v.Type)
 		}
@@ -249,6 +265,12 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 		return
 	}
 
+	// skip if its notification payload
+	isNf := jsoniter.ConfigFastest.Get(result.Result, "notification").ToBool()
+	if isNf {
+		return
+	}
+
 	err = s.state.Set(parent, result.Result)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -258,4 +280,6 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 			"error":  err,
 		}).Error("updateState: set")
 	}
+
+	s.sendState(parent, result.Result)
 }

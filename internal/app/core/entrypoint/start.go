@@ -63,6 +63,8 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 
 	errCh := sock.Start(ctx)
 
+	stateCh := make(chan []byte)
+
 	// wait while connectors reconnects
 	// before continue
 	time.Sleep(2 * time.Second)
@@ -71,7 +73,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
 		db, viper.GetBool("core.db.clean_state"),
-		sock, api, jobs.New(), requestsCh)
+		sock, api, jobs.New(), stateCh, requestsCh)
 	if err != nil {
 		return err
 	}
@@ -81,7 +83,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		viper.GetString("core.id"),
 		viper.GetString("core.mqtt.cert_file"),
 		viper.GetString("core.mqtt.key_path"),
-		db, rpc,
+		db, rpc, stateCh,
 	)
 	if err != nil {
 		return err
