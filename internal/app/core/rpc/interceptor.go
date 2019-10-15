@@ -34,6 +34,7 @@ import (
 type stater interface {
 	Get(string) ([]byte, error)
 	Set(string, []byte) error
+	GetAll() (map[string][]byte, error)
 }
 
 type rpcCli interface {
@@ -105,19 +106,19 @@ func (s Service) requestsListener() {
 				"value": string(msg),
 				"error": err,
 			}).Error("updateState: unmarshal json")
-			return
+			continue
 		}
 
 		if len(request.Params.Value) == 0 {
 			log.WithField("value", string(msg)).
 				Error("empty value in notification")
-			return
+			continue
 		}
 
 		parent := request.Params.RequestParams.Get("_parent").Str()
 		if parent == "" {
 			log.WithField("value", string(msg)).Error("empty _parent in request")
-			return
+			continue
 		}
 
 		log.WithFields(log.Fields{
@@ -132,6 +133,7 @@ func (s Service) requestsListener() {
 				"param": parent,
 				"error": err,
 			}).Error("request set state: set")
+			continue
 		}
 	}
 }
@@ -224,7 +226,7 @@ func (s Service) Call(name string, payload []byte) []byte {
 }
 
 func (s Service) updateState(req objx.Map, resp []byte) {
-	parent := req.Get("_parent").Str()
+	parent := req.Get("params._parent").Str()
 	if parent == "" {
 		return
 	}
