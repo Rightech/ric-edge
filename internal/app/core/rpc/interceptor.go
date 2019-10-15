@@ -195,8 +195,10 @@ func (s Service) Call(name string, payload []byte) []byte {
 
 	device := data.Get("params.device")
 	if !device.IsNil() && device.IsStr() && strings.HasPrefix(device.Str(), "{{") {
-		value := strings.ReplaceAll(strings.Trim(device.Str(), "{}"), "object.config.", "")
-		data.Set("params.device", s.obj.Config.Get(value).Str())
+		devID := device.Str()
+		devID = devID[2 : len(devID)-2]
+		devID = strings.ReplaceAll(devID, "object.config.", "")
+		data.Set("params.device", s.obj.Config.Get(devID).Str())
 		changed = true
 	}
 
