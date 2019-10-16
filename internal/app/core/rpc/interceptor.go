@@ -100,8 +100,6 @@ func (s Service) sendState(parent string, value []byte) {
 		}).Error("sendState: marshal json")
 	}
 
-	// fmt.Println(string(st))
-
 	s.stateCh <- st
 }
 

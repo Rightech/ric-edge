@@ -19,7 +19,6 @@ package handler
 import (
 	"context"
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"time"
 	"unsafe"
@@ -290,8 +289,7 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 	nfSrv := s.rpc.NewNotification(params)
 
 	err = cli.Subscribe(ch[0], params.Get("indicator").Bool(), func(req []byte) {
-		val := binary.LittleEndian.Uint32(req)
-		nfSrv.Send(val)
+		nfSrv.Send(req)
 	})
 	if err != nil {
 		return nil, err
