@@ -21,5 +21,5 @@ require (
 	github.com/soniah/gosnmp v1.22.0
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/objx v0.2.0
-	golang.org/x/sys v0.0.0-20191010194322-b09406accb47
+	golang.org/x/sys v0.0.0-20191020212454-3e7259c5e7c2
 )
