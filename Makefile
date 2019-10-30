@@ -64,11 +64,15 @@ tool_%:  ##
 VERSION := $(if $(VERSION),$(VERSION),\
 	$(shell git describe --tags --always | tail -c +2))
 
+build_all:  ##
+	## build all services
+	@for dir in $(wildcard ./cmd/*); do \
+        ./scripts/build.sh $$dir $(VERSION); \
+    done
+
 build_%:  ##
 	## build any service specified by %
 	@./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
-
-buildall: build_core build_modbus build_opcua build_snmp build_ble
 
 gen:  ##
 	## run go generate

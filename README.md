@@ -57,7 +57,7 @@ ws_port = 9000
 To build all services run
 
 ```bash
-$ make buildall
+$ make build_all
 ```
 
 also you can build specific service

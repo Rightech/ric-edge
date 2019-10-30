@@ -12,7 +12,7 @@ steps:
   image: golang:1.13
   commands:
   - apt-get update && apt-get install -y upx
-  - make buildall VERSION=${DRONE_TAG##v}
+  - make build_all VERSION=${DRONE_TAG##v}
   environment:
     GOFLAGS: -mod=vendor
 
