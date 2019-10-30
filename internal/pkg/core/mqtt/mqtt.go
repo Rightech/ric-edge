@@ -77,7 +77,8 @@ func New(url, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte
 
 	if certs != nil {
 		opts = opts.SetTLSConfig(&tls.Config{
-			Certificates: certs,
+			Certificates:       certs,
+			InsecureSkipVerify: true,
 		})
 
 		log.Debug("mqtt tls enabled")
