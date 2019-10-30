@@ -68,7 +68,7 @@ build_%:  ##
 	## build any service specified by %
 	@./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
 
-buildall: build_core build_modbus build_opcua build_snmp
+buildall: build_core build_modbus build_opcua build_snmp build_ble
 
 gen:  ##
 	## run go generate
