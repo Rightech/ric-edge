@@ -1,6 +1,6 @@
 # ric-edge
 
-[![Build Status](https://cloud.drone.io/api/badges/Rightech/ric-edge/status.svg)](https://cloud.drone.io/Rightech/ric-edge)
+[![Build Status](https://cloud.drone.io/api/badges/Rightech/ric-edge/status.svg?ref=refs/tags/v0.2.0)](https://cloud.drone.io/Rightech/ric-edge)
 
 ## config
 
@@ -114,3 +114,7 @@ Also you can run it manual by
 ```bash
 $ make validate
 ```
+
+### bumpversion
+
+To prepare releases we use [bumpversion](https://pypi.org/project/bumpversion).
