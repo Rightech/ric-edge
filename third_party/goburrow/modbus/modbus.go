@@ -91,3 +91,7 @@ type Packager interface {
 type Transporter interface {
 	Send(aduRequest []byte) (aduResponse []byte, err error)
 }
+
+type Logger interface {
+	Printf(string, ...interface{})
+}

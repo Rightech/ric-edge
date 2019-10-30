@@ -24,7 +24,9 @@ import (
 	"github.com/Rightech/ric-edge/internal/app/modbus/handler"
 	"github.com/Rightech/ric-edge/internal/pkg/ws"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
+	"github.com/Rightech/ric-edge/pkg/log/logger"
 	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -37,13 +39,19 @@ func Start(done <-chan os.Signal) error {
 	mode := viper.GetString("modbus.mode")
 	switch mode {
 	case "tcp":
-		transport = modbus.NewTCPTransporter(viper.GetString("modbus.addr"))
+		hndlr := modbus.NewTCPTransporter(viper.GetString("modbus.addr"))
+		hndlr.Logger = logger.New("debug", log.DebugLevel)
+		transport = hndlr
 		packagerFn = func(s byte) modbus.Packager { return modbus.NewTCPPackager(s) }
 	case "rtu":
-		transport = modbus.NewRTUTransporter(viper.GetString("modbus.addr"))
+		hndlr := modbus.NewRTUTransporter(viper.GetString("modbus.addr"))
+		hndlr.Logger = logger.New("debug", log.DebugLevel)
+		transport = hndlr
 		packagerFn = func(s byte) modbus.Packager { return modbus.NewRTUPackager(s) }
 	case "ascii":
-		transport = modbus.NewASCIITransporter(viper.GetString("modbus.addr"))
+		hndlr := modbus.NewASCIITransporter(viper.GetString("modbus.addr"))
+		hndlr.Logger = logger.New("debug", log.DebugLevel)
+		transport = hndlr
 		packagerFn = func(s byte) modbus.Packager { return modbus.NewASCIIPackager(s) }
 	default:
 		return errors.New("modbus.mode should be tcp, rtu or ascii but " + mode + " given")
