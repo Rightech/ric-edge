@@ -78,7 +78,7 @@ const (
 	minByte = int64(0)
 )
 
-func getInt(params objx.Map, k string, def ...int64) (int64, error) {
+func getInt64(params objx.Map, k string, def ...int64) (int64, error) {
 	val := params.Get(k)
 	if val.IsNil() {
 		if len(def) > 0 {
@@ -105,8 +105,8 @@ func getInt(params objx.Map, k string, def ...int64) (int64, error) {
 	return value, nil
 }
 
-func getByte(params objx.Map, k string, def ...int) (byte, error) {
-	value, err := getInt(params, k)
+func getByte(params objx.Map, k string, def ...int64) (byte, error) {
+	value, err := getInt64(params, k, def...)
 	if err != nil {
 		return 0, err
 	}
@@ -119,7 +119,7 @@ func getByte(params objx.Map, k string, def ...int) (byte, error) {
 }
 
 func getUint16(params objx.Map, k string, def ...int64) (uint16, error) {
-	value, err := getInt(params, k, def...)
+	value, err := getInt64(params, k, def...)
 	if err != nil {
 		return 0, err
 	}
