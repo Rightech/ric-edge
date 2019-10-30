@@ -105,14 +105,14 @@ func getInt64(params objx.Map, k string, def ...int64) (int64, error) {
 	return value, nil
 }
 
-func getByte(params objx.Map, k string, def ...int64) (byte, error) {
-	value, err := getInt64(params, k, def...)
+func getSlaveID(params objx.Map) (byte, error) {
+	value, err := getInt64(params, "slave_id", 0)
 	if err != nil {
 		return 0, err
 	}
 
 	if !(minByte <= value && value <= maxByte) {
-		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" should be byte")
+		return 0, jsonrpc.ErrInvalidParams.AddData("msg", "slave_id should be byte")
 	}
 
 	return byte(value), nil
@@ -175,7 +175,11 @@ func (s Service) readCoils(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	slaveID, _ := getByte(params, "slave_id", 0)
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
 	cli := s.getClient(slaveID)
 
 	return cli.ReadCoils(addr, quantity)
@@ -187,7 +191,11 @@ func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	slaveID, _ := getByte(params, "slave_id", 0)
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
 	cli := s.getClient(slaveID)
 
 	return cli.ReadDiscreteInputs(addr, quantity)
@@ -222,7 +230,11 @@ func (s Service) readInputRegisters(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	slaveID, _ := getByte(params, "slave_id", 0)
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
 	cli := s.getClient(slaveID)
 
 	return cli.ReadInputRegisters(addr, quantity)
@@ -234,7 +246,11 @@ func (s Service) readHoldingRegisters(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	slaveID, _ := getByte(params, "slave_id", 0)
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
 	cli := s.getClient(slaveID)
 
 	return cli.ReadHoldingRegisters(addr, quantity)
@@ -246,7 +262,11 @@ func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	slaveID, _ := getByte(params, "slave_id", 0)
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
 	cli := s.getClient(slaveID)
 
 	return cli.WriteSingleRegister(addr, value)
