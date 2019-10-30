@@ -42,8 +42,11 @@ func Start(done <-chan os.Signal) error {
 	case "rtu":
 		transport = modbus.NewRTUTransporter(viper.GetString("modbus.addr"))
 		packagerFn = func(s byte) modbus.Packager { return modbus.NewRTUPackager(s) }
+	case "ascii":
+		transport = modbus.NewASCIITransporter(viper.GetString("modbus.addr"))
+		packagerFn = func(s byte) modbus.Packager { return modbus.NewASCIIPackager(s) }
 	default:
-		return errors.New("modbus.mode should be tcp or rtu but " + mode + " given")
+		return errors.New("modbus.mode should be tcp, rtu or ascii but " + mode + " given")
 	}
 
 	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("modbus.ws_path"))

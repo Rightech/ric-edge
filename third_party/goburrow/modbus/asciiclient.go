@@ -22,8 +22,8 @@ const (
 
 // ASCIIClientHandler implements Packager and Transporter interface.
 type ASCIIClientHandler struct {
-	asciiPackager
-	asciiSerialTransporter
+	ASCIIPackager
+	ASCIISerialTransporter
 }
 
 // NewASCIIClientHandler allocates and initializes a ASCIIClientHandler.
@@ -35,14 +35,27 @@ func NewASCIIClientHandler(address string) *ASCIIClientHandler {
 	return handler
 }
 
+func NewASCIITransporter(address string) *ASCIISerialTransporter {
+	t := &ASCIISerialTransporter{}
+	t.Address = address
+	t.Timeout = serialTimeout
+	t.IdleTimeout = serialIdleTimeout
+
+	return t
+}
+
+func NewASCIIPackager(slaveID byte) *ASCIIPackager {
+	return &ASCIIPackager{SlaveId: slaveID}
+}
+
 // ASCIIClient creates ASCII client with default handler and given connect string.
 func ASCIIClient(address string) Client {
 	handler := NewASCIIClientHandler(address)
 	return NewClient(handler)
 }
 
-// asciiPackager implements Packager interface.
-type asciiPackager struct {
+// ASCIIPackager implements Packager interface.
+type ASCIIPackager struct {
 	SlaveId byte
 }
 
@@ -53,7 +66,7 @@ type asciiPackager struct {
 //  Data            : 0 up to 2x252 chars
 //  LRC             : 2 chars
 //  End             : 2 chars
-func (mb *asciiPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
+func (mb *ASCIIPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
 	var buf bytes.Buffer
 
 	if _, err = buf.WriteString(asciiStart); err != nil {
@@ -80,7 +93,7 @@ func (mb *asciiPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
 }
 
 // Verify verifies response length, frame boundary and slave id.
-func (mb *asciiPackager) Verify(aduRequest []byte, aduResponse []byte) (err error) {
+func (mb *ASCIIPackager) Verify(aduRequest []byte, aduResponse []byte) (err error) {
 	length := len(aduResponse)
 	// Minimum size (including address, function and LRC)
 	if length < asciiMinSize+6 {
@@ -121,7 +134,7 @@ func (mb *asciiPackager) Verify(aduRequest []byte, aduResponse []byte) (err erro
 }
 
 // Decode extracts PDU from ASCII frame and verify LRC.
-func (mb *asciiPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
+func (mb *ASCIIPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
 	pdu = &ProtocolDataUnit{}
 	// Slave address
 	address, err := readHex(adu[1:])
@@ -155,12 +168,12 @@ func (mb *asciiPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
 	return
 }
 
-// asciiSerialTransporter implements Transporter interface.
-type asciiSerialTransporter struct {
+// ASCIISerialTransporter implements Transporter interface.
+type ASCIISerialTransporter struct {
 	serialPort
 }
 
-func (mb *asciiSerialTransporter) Send(aduRequest []byte) (aduResponse []byte, err error) {
+func (mb *ASCIISerialTransporter) Send(aduRequest []byte) (aduResponse []byte, err error) {
 	mb.serialPort.mu.Lock()
 	defer mb.serialPort.mu.Unlock()
 
