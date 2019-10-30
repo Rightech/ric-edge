@@ -1,6 +1,8 @@
 # ric-edge
 
-[![Build Status](https://cloud.drone.io/api/badges/Rightech/ric-edge/status.svg?ref=refs/tags/v0.2.0)](https://cloud.drone.io/Rightech/ric-edge)
+<a href="https://cloud.drone.io/Rightech/ric-edge" target="_blank">![Build Status](https://cloud.drone.io/api/badges/Rightech/ric-edge/status.svg?ref=refs/tags/v0.2.0)</a>
+
+<a href="https://github.com/Rightech/ric-edge/releases/tag/v0.2.0" target="_blank">![GitHub release](https://img.shields.io/github/v/release/Rightech/ric-edge?include_prereleases)</a>
 
 ## config
 
