@@ -24,19 +24,24 @@ import (
 	"github.com/Rightech/ric-edge/internal/app/modbus/handler"
 	"github.com/Rightech/ric-edge/internal/pkg/ws"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/goburrow/modbus"
+	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
 	"github.com/spf13/viper"
 )
 
 func Start(done <-chan os.Signal) error {
-	var mcli modbus.Client
+	var (
+		transport  modbus.Transporter
+		packagerFn handler.PackagerFn
+	)
 
 	mode := viper.GetString("modbus.mode")
 	switch mode {
 	case "tcp":
-		mcli = modbus.TCPClient(viper.GetString("modbus.addr"))
+		transport = modbus.NewTCPTransporter(viper.GetString("modbus.addr"))
+		packagerFn = func(s byte) modbus.Packager { return modbus.NewTCPPackager(s) }
 	case "rtu":
-		mcli = modbus.RTUClient(viper.GetString("modbus.addr"))
+		transport = modbus.NewRTUTransporter(viper.GetString("modbus.addr"))
+		packagerFn = func(s byte) modbus.Packager { return modbus.NewRTUPackager(s) }
 	default:
 		return errors.New("modbus.mode should be tcp or rtu but " + mode + " given")
 	}
@@ -48,7 +53,7 @@ func Start(done <-chan os.Signal) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go jsonrpc.ServeWithReconnect(ctx, cli, handler.New(mcli))
+	go jsonrpc.ServeWithReconnect(ctx, cli, handler.New(transport, packagerFn))
 
 	<-done
 	cancel()

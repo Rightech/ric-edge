@@ -20,16 +20,23 @@ import (
 	"encoding/json"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/goburrow/modbus"
+	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
 	"github.com/stretchr/objx"
 )
 
+type PackagerFn func(byte) modbus.Packager
+
 type Service struct {
-	cli modbus.Client
+	transport      modbus.Transporter
+	packagerGetter PackagerFn
 }
 
-func New(cli modbus.Client) Service {
-	return Service{cli}
+func New(transport modbus.Transporter, pGetter PackagerFn) Service {
+	return Service{transport, pGetter}
+}
+
+func (s Service) getClient(slaveID byte) modbus.Client {
+	return modbus.NewClient2(s.packagerGetter(slaveID), s.transport)
 }
 
 func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
@@ -66,12 +73,24 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 const (
 	maxUint16 = int64(^uint16(0))
 	minUint16 = int64(0)
+
+	maxByte = int64(255)
+	minByte = int64(0)
 )
 
-func getUint16(params objx.Map, k string) (uint16, error) {
-	number, ok := params.Get(k).Data().(json.Number)
+func getInt(params objx.Map, k string, def ...int64) (int64, error) {
+	val := params.Get(k)
+	if val.IsNil() {
+		if len(def) > 0 {
+			return def[0], nil
+		}
+
+		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" required")
+	}
+
+	number, ok := val.Data().(json.Number)
 	if !ok {
-		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be number")
+		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" should be number")
 	}
 
 	var (
@@ -80,7 +99,29 @@ func getUint16(params objx.Map, k string) (uint16, error) {
 	)
 
 	if value, err = number.Int64(); err != nil {
-		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be number")
+		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" should be int")
+	}
+
+	return value, nil
+}
+
+func getByte(params objx.Map, k string, def ...int) (byte, error) {
+	value, err := getInt(params, k)
+	if err != nil {
+		return 0, err
+	}
+
+	if !(minByte <= value && value <= maxByte) {
+		return 0, jsonrpc.ErrInvalidParams.AddData("msg", k+" should be byte")
+	}
+
+	return byte(value), nil
+}
+
+func getUint16(params objx.Map, k string, def ...int64) (uint16, error) {
+	value, err := getInt(params, k, def...)
+	if err != nil {
+		return 0, err
 	}
 
 	if !(minUint16 <= value && value <= maxUint16) {
@@ -134,7 +175,10 @@ func (s Service) readCoils(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return s.cli.ReadCoils(addr, quantity)
+	slaveID, _ := getByte(params, "slave_id", 0)
+	cli := s.getClient(slaveID)
+
+	return cli.ReadCoils(addr, quantity)
 }
 
 func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
@@ -143,7 +187,10 @@ func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return s.cli.ReadDiscreteInputs(addr, quantity)
+	slaveID, _ := getByte(params, "slave_id", 0)
+	cli := s.getClient(slaveID)
+
+	return cli.ReadDiscreteInputs(addr, quantity)
 }
 
 // func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
@@ -175,7 +222,10 @@ func (s Service) readInputRegisters(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return s.cli.ReadInputRegisters(addr, quantity)
+	slaveID, _ := getByte(params, "slave_id", 0)
+	cli := s.getClient(slaveID)
+
+	return cli.ReadInputRegisters(addr, quantity)
 }
 
 func (s Service) readHoldingRegisters(params objx.Map) (interface{}, error) {
@@ -184,7 +234,10 @@ func (s Service) readHoldingRegisters(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return s.cli.ReadHoldingRegisters(addr, quantity)
+	slaveID, _ := getByte(params, "slave_id", 0)
+	cli := s.getClient(slaveID)
+
+	return cli.ReadHoldingRegisters(addr, quantity)
 }
 
 func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
@@ -193,7 +246,10 @@ func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return s.cli.WriteSingleRegister(addr, value)
+	slaveID, _ := getByte(params, "slave_id", 0)
+	cli := s.getClient(slaveID)
+
+	return cli.WriteSingleRegister(addr, value)
 }
 
 // func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {

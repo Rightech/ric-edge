@@ -20,8 +20,8 @@ const (
 
 // RTUClientHandler implements Packager and Transporter interface.
 type RTUClientHandler struct {
-	rtuPackager
-	rtuSerialTransporter
+	RTUPackager
+	RTUSerialTransporter
 }
 
 // NewRTUClientHandler allocates and initializes a RTUClientHandler.
@@ -33,14 +33,27 @@ func NewRTUClientHandler(address string) *RTUClientHandler {
 	return handler
 }
 
+func NewRTUTransporter(address string) *RTUSerialTransporter {
+	t := &RTUSerialTransporter{}
+	t.Address = address
+	t.Timeout = serialTimeout
+	t.IdleTimeout = serialIdleTimeout
+
+	return t
+}
+
+func NewRTUPackager(slaveID byte) *RTUPackager {
+	return &RTUPackager{SlaveId: slaveID}
+}
+
 // RTUClient creates RTU client with default handler and given connect string.
 func RTUClient(address string) Client {
 	handler := NewRTUClientHandler(address)
 	return NewClient(handler)
 }
 
-// rtuPackager implements Packager interface.
-type rtuPackager struct {
+// RTUPackager implements Packager interface.
+type RTUPackager struct {
 	SlaveId byte
 }
 
@@ -49,7 +62,7 @@ type rtuPackager struct {
 //  Function        : 1 byte
 //  Data            : 0 up to 252 bytes
 //  CRC             : 2 byte
-func (mb *rtuPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
+func (mb *RTUPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
 	length := len(pdu.Data) + 4
 	if length > rtuMaxSize {
 		err = fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuMaxSize)
@@ -72,7 +85,7 @@ func (mb *rtuPackager) Encode(pdu *ProtocolDataUnit) (adu []byte, err error) {
 }
 
 // Verify verifies response length and slave id.
-func (mb *rtuPackager) Verify(aduRequest []byte, aduResponse []byte) (err error) {
+func (mb *RTUPackager) Verify(aduRequest []byte, aduResponse []byte) (err error) {
 	length := len(aduResponse)
 	// Minimum size (including address, function and CRC)
 	if length < rtuMinSize {
@@ -88,7 +101,7 @@ func (mb *rtuPackager) Verify(aduRequest []byte, aduResponse []byte) (err error)
 }
 
 // Decode extracts PDU from RTU frame and verify CRC.
-func (mb *rtuPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
+func (mb *RTUPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
 	length := len(adu)
 	// Calculate checksum
 	var crc crc
@@ -105,12 +118,12 @@ func (mb *rtuPackager) Decode(adu []byte) (pdu *ProtocolDataUnit, err error) {
 	return
 }
 
-// rtuSerialTransporter implements Transporter interface.
-type rtuSerialTransporter struct {
+// RTUSerialTransporter implements Transporter interface.
+type RTUSerialTransporter struct {
 	serialPort
 }
 
-func (mb *rtuSerialTransporter) Send(aduRequest []byte) (aduResponse []byte, err error) {
+func (mb *RTUSerialTransporter) Send(aduRequest []byte) (aduResponse []byte, err error) {
 	// Make sure port is connected
 	if err = mb.serialPort.connect(); err != nil {
 		return
@@ -167,7 +180,7 @@ func (mb *rtuSerialTransporter) Send(aduRequest []byte) (aduResponse []byte, err
 
 // calculateDelay roughly calculates time needed for the next frame.
 // See MODBUS over Serial Line - Specification and Implementation Guide (page 13).
-func (mb *rtuSerialTransporter) calculateDelay(chars int) time.Duration {
+func (mb *RTUSerialTransporter) calculateDelay(chars int) time.Duration {
 	var characterDelay, frameDelay int // us
 
 	if mb.BaudRate <= 0 || mb.BaudRate > 19200 {

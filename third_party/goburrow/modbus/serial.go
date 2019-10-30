@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goburrow/serial"
+	"github.com/Rightech/ric-edge/third_party/goburrow/serial"
 )
 
 const (
