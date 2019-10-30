@@ -9,6 +9,12 @@ You can use `config.toml` file to configure core and connectors or specify path 
 
 Configuration with default values
 
+To print this run
+
+```bash
+$ ./core-<os>-<arch>-<version> -default-config
+```
+
 ```toml
 log_level = "info"
 log_format = "text" # output log format (you can use text or json)

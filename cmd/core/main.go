@@ -17,6 +17,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -31,6 +32,14 @@ import (
 var version string // nolint: gochecknoglobals
 
 func main() {
+	printCfg := flag.Bool("default-config", false, "print default configuration")
+	flag.Parse()
+
+	if printCfg != nil && *printCfg {
+		printDefaultConfig()
+		return
+	}
+
 	config.Setup(version)
 
 	log.Info("Version: ", viper.GetString("version"))

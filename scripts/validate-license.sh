@@ -28,6 +28,7 @@ find_files() {
       -o -wholename './pkg/proto' \
       -o -wholename '*testdata*' \
       -o -wholename './third_party' \
+      -o -wholename '*_generated.go' \
     \) -prune \
   \) \
   \( -name '*.go' -o -name '*.sh' -o -name 'Dockerfile' \)

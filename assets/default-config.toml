@@ -1,0 +1,34 @@
+log_level = "info"
+log_format = "text" # output log format (you can use text or json)
+ws_port = 9000
+
+[core]
+    id = "" # id of edge
+    rpc_timeout = "1m" # how long core should wait response from connector before return timeout error
+
+    [core.db]
+    path = "storage.db"
+    clean_state = false # should internal state be cleaned on start or not
+
+    [core.cloud]
+    url = "https://sandbox.rightech.io/api/v1"
+    token = ""  # cloud jwt access token
+
+    [core.mqtt]
+    # if cert_file and key_path provided core will be use tls connection
+    # in this case make sure your url start with tls://
+    url = "tcp://localhost:1883"
+    cert_file = "" # mqtt certificate file path
+    key_path = "" # mqtt key file path
+
+[modbus]
+    mode = "tcp" # rtu and ascii also supported
+    addr = "localhost:8000"  # if mode = rtu or ascii there is should be path
+
+[opcua]
+    endpoint = "opc.tcp://localhost:4840"
+
+[snmp]
+    host_port="localhost:161"
+    version="2c"
+    community= "public"
