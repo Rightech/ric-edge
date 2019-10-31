@@ -19,6 +19,7 @@ package mqtt
 import (
 	"crypto/tls"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,7 +51,19 @@ type rpc interface {
 	Call(string, []byte) []byte
 }
 
-func New(url, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) (Service, error) {
+func New(u, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) (Service, error) {
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		return Service{}, err
+	}
+
+	if parsedURL.Host == "" {
+		parsedURL.Host = parsedURL.Scheme + ":" + parsedURL.Opaque
+		parsedURL.Opaque = ""
+	}
+
+	parsedURL.Scheme = "tcp"
+
 	var certs []tls.Certificate
 
 	if cert != "" && key != "" {
@@ -60,6 +73,8 @@ func New(url, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte
 		}
 
 		certs = []tls.Certificate{pair}
+
+		parsedURL.Scheme = "tls"
 	}
 
 	paho.CRITICAL = logger.New("critical", log.ErrorLevel)
@@ -67,7 +82,7 @@ func New(url, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte
 	paho.WARN = logger.New("warn", log.DebugLevel)
 
 	opts := paho.NewClientOptions().
-		AddBroker(url).
+		AddBroker(parsedURL.String()).
 		SetClientID(clientID).
 		SetAutoReconnect(true).
 		SetStore(mqtt.NewStore(db)).
