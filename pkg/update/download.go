@@ -49,14 +49,12 @@ func printStat(ctx context.Context, totalSize int64, file *os.File) {
 	}
 }
 
-func Download(url string) {
+func Download(url, name string) {
 	idx := strings.LastIndexByte(url, '/')
 	if idx < 0 {
 		log.Warn("bad url format")
 		return
 	}
-
-	name := url[idx+1:]
 
 	client := http.Client{
 		Timeout: 10 * time.Minute,
