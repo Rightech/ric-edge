@@ -26,7 +26,8 @@ import (
 )
 
 type Object struct {
-	ID     string `json:"_id"`
+	OID    string `json:"_id"`
+	ID     string
 	Models struct {
 		ID string
 	}

@@ -80,7 +80,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 
 	mqtt, err := mqtt.New(
 		viper.GetString("core.mqtt.url"),
-		viper.GetString("core.id"),
+		rpc.GetEdgeID(),
 		viper.GetString("core.mqtt.cert_file"),
 		viper.GetString("core.mqtt.key_path"),
 		db, rpc, stateCh,

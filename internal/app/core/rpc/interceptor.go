@@ -85,6 +85,10 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 	return s, s.spawnJobs(model.Actions())
 }
 
+func (s Service) GetEdgeID() string {
+	return s.obj.ID
+}
+
 var (
 	errTimeout   = jsonrpc.ErrServer.AddData("msg", "timeout")
 	errUnmarshal = jsonrpc.ErrParse.AddData("msg", "json unmarshal error")
