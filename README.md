@@ -10,7 +10,7 @@ You can use `config.toml` file to configure core and connectors or specify path 
 You can generate minimal required config with
 
 ```bash
-$ ./core-<os>-<arch>-<version> -min-config
+$ ./core-<os>-<arch> -min-config
 ```
 
 Minimal configuration
@@ -30,7 +30,7 @@ Minimal configuration
 Also you can generate configuration with default values
 
 ```bash
-$ ./core-<os>-<arch>-<version> -default-config
+$ ./core-<os>-<arch> -default-config
 ```
 
 Default configuration
