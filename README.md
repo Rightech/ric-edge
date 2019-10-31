@@ -7,13 +7,33 @@
 
 You can use `config.toml` file to configure core and connectors or specify path via `-config` option.
 
-Configuration with default values
+You can generate minimal required config with
 
-To print this run
+```bash
+$ ./core-<os>-<arch>-<version> -min-config
+```
+
+Minimal configuration
+
+```toml
+[core]
+    id = "" # id of edge
+
+    [core.cloud]
+    token = ""  # cloud jwt access token
+
+    [core.mqtt]
+    cert_file = "" # mqtt certificate file path
+    key_path = "" # mqtt key file path
+```
+
+Also you can generate configuration with default values
 
 ```bash
 $ ./core-<os>-<arch>-<version> -default-config
 ```
+
+Default configuration
 
 ```toml
 log_level = "info"
@@ -35,7 +55,7 @@ ws_port = 9000
     [core.mqtt]
     # if cert_file and key_path provided core will be use tls connection
     # in this case make sure your url start with tls://
-    url = "tcp://localhost:1883"
+    url = "tls://sandbox.rightech.io:8883"
     cert_file = "" # mqtt certificate file path
     key_path = "" # mqtt key file path
 

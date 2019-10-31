@@ -33,10 +33,16 @@ var version string // nolint: gochecknoglobals
 
 func main() {
 	printCfg := flag.Bool("default-config", false, "print default configuration")
+	printMinCfg := flag.Bool("min-config", false, "print minimal configuration")
 	flag.Parse()
 
 	if printCfg != nil && *printCfg {
-		printDefaultConfig()
+		printConfig("default-config")
+		return
+	}
+
+	if printMinCfg != nil && *printMinCfg {
+		printConfig("min-config")
 		return
 	}
 

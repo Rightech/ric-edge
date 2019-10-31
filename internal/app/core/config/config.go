@@ -30,7 +30,7 @@ func Setup(version ...string) {
 	viper.SetDefault("core.db.path", "storage.db")
 	viper.SetDefault("core.db.clean_state", false)
 
-	viper.SetDefault("core.mqtt.url", "tcp://localhost:1883")
+	viper.SetDefault("core.mqtt.url", "tls://sandbox.rightech.io:8883")
 	viper.SetDefault("core.mqtt.cert_file", "")
 	viper.SetDefault("core.mqtt.key_path", "")
 

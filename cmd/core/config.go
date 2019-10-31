@@ -25,8 +25,8 @@ import (
 	_ "github.com/shurcooL/vfsgen" // required to go mod find this
 )
 
-func printDefaultConfig() {
-	file, err := data.Assets.Open("/default-config.toml")
+func printConfig(name string) {
+	file, err := data.Assets.Open("/" + name + ".toml")
 	if err != nil {
 		os.Stderr.WriteString(err.Error())
 		return

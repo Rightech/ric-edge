@@ -1,0 +1,9 @@
+[core]
+    id = "" # id of edge
+
+    [core.cloud]
+    token = ""  # cloud jwt access token
+
+    [core.mqtt]
+    cert_file = "" # mqtt certificate file path
+    key_path = "" # mqtt key file path
