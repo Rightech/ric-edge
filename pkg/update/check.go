@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
@@ -64,7 +65,19 @@ func Check(currentVer, name string) string {
 		return ""
 	}
 
-	if release.TagName[1:] != currentVer { // [1:] required to trim v prefix
+	releaseVersion, err := semver.NewVersion(release.TagName)
+	if err != nil {
+		log.WithError(err).Warn("parse release version")
+		return ""
+	}
+
+	currentVersion, err := semver.NewVersion(currentVer)
+	if err != nil {
+		log.WithError(err).Warn("parse current version")
+		return ""
+	}
+
+	if releaseVersion.GreaterThan(currentVersion) {
 		for _, ass := range release.Assets {
 			if strings.HasPrefix(ass.Name, name) {
 				return ass.URL
