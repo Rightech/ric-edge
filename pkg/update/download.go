@@ -21,7 +21,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -50,12 +49,6 @@ func printStat(ctx context.Context, totalSize int64, file *os.File) {
 }
 
 func Download(url, name string) {
-	idx := strings.LastIndexByte(url, '/')
-	if idx < 0 {
-		log.Warn("bad url format")
-		return
-	}
-
 	client := http.Client{
 		Timeout: 10 * time.Minute,
 	}
