@@ -17,7 +17,6 @@
 package update
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -64,8 +63,6 @@ func Check(currentVer, name string) string {
 		log.WithError(err).Warn("decode check update response")
 		return ""
 	}
-
-	fmt.Println(release)
 
 	if release.TagName[1:] != currentVer { // [1:] required to trim v prefix
 		for _, ass := range release.Assets {
