@@ -37,7 +37,7 @@ do
     platform_split=(${platform//\// })
     goos=${platform_split[0]}
     goarch=${platform_split[1]}
-    output_name=$bin_dir'/'$package_name'-'$goos'-'$goarch'-'$version
+    output_name=$bin_dir'/'$package_name'-'$goos'-'$goarch
     if [ $goos = "windows" ]; then
         output_name+='.exe'
     fi

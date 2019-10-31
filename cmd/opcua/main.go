@@ -32,6 +32,8 @@ import (
 // set at build time via ldflags
 var version string // nolint: gochecknoglobals
 
+const name = "opcua-" + runtime.GOOS + "-" + runtime.GOARCH
+
 func main() {
 	config.Setup(version)
 
@@ -40,9 +42,15 @@ func main() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
-	res := update.Check(version, "opcua-"+runtime.GOOS+"-"+runtime.GOARCH)
-	if res != "" {
-		log.Info("New version available. Download it: ", res)
+	if viper.GetBool("check_updates") {
+		res := update.Check(version, name)
+		if res != "" {
+			log.Info("New version available. Download it: ", res)
+			if viper.GetBool("auto_download_updates") {
+				update.Download(res)
+				return
+			}
+		}
 	}
 
 	err := entrypoint.Start(signalCh)

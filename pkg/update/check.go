@@ -17,6 +17,8 @@
 package update
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -47,12 +49,23 @@ func Check(currentVer, name string) string {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		response, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.WithError(err).Warn("read error response")
+		}
+		log.WithField("r", string(response)).Warn("check update error")
+		return ""
+	}
+
 	var release release
 	err = jsoniter.ConfigFastest.NewDecoder(resp.Body).Decode(&release)
 	if err != nil {
 		log.WithError(err).Warn("decode check update response")
 		return ""
 	}
+
+	fmt.Println(release)
 
 	if release.TagName[1:] != currentVer { // [1:] required to trim v prefix
 		for _, ass := range release.Assets {

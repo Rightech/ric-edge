@@ -33,6 +33,8 @@ import (
 // set at build time via ldflags
 var version string // nolint: gochecknoglobals
 
+const name = "core-" + runtime.GOOS + "-" + runtime.GOARCH
+
 func main() {
 	printCfg := flag.Bool("default-config", false, "print default configuration")
 	printMinCfg := flag.Bool("min-config", false, "print minimal configuration")
@@ -55,9 +57,15 @@ func main() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
-	res := update.Check(version, "core-"+runtime.GOOS+"-"+runtime.GOARCH)
-	if res != "" {
-		log.Info("New version available. Download it: ", res)
+	if viper.GetBool("check_updates") {
+		res := update.Check(version, name)
+		if res != "" {
+			log.Info("New version available. Download it: ", res)
+			if viper.GetBool("auto_download_updates") {
+				update.Download(res)
+				return
+			}
+		}
 	}
 
 	err := entrypoint.Start(signalCh)

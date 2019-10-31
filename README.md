@@ -39,6 +39,8 @@ Default configuration
 log_level = "info"
 log_format = "text" # output log format (you can use text or json)
 ws_port = 9000
+check_updates = true
+auto_download_updates = false  # if true service will download update and exit
 
 [core]
     id = "" # id of edge
