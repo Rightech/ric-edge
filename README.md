@@ -20,7 +20,12 @@ Minimal configuration
     id = "" # id of edge
 
     [core.cloud]
-    token = ""  # cloud jwt access token
+    # cloud jwt access token
+    # minimal scope should be
+    #
+    # GET models/:id
+    # GET objects/:id
+    token = ""
 
     [core.mqtt]
     cert_file = "" # mqtt certificate file path
@@ -52,7 +57,12 @@ auto_download_updates = false  # if true service will download update and exit
 
     [core.cloud]
     url = "https://sandbox.rightech.io/api/v1"
-    token = ""  # cloud jwt access token
+    # cloud jwt access token
+    # minimal scope should be
+    #
+    # GET models/:id
+    # GET objects/:id
+    token = ""
 
     [core.mqtt]
     # if cert_file and key_path provided core will be use tls connection

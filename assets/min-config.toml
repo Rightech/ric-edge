@@ -2,7 +2,12 @@
     id = "" # id of edge
 
     [core.cloud]
-    token = ""  # cloud jwt access token
+    # cloud jwt access token
+    # minimal scope should be
+    #
+    # GET models/:id
+    # GET objects/:id
+    token = ""
 
     [core.mqtt]
     cert_file = "" # mqtt certificate file path
