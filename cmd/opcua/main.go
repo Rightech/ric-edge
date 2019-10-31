@@ -19,10 +19,12 @@ package main
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/Rightech/ric-edge/internal/app/opcua/config"
 	"github.com/Rightech/ric-edge/internal/app/opcua/entrypoint"
+	"github.com/Rightech/ric-edge/pkg/update"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -37,6 +39,11 @@ func main() {
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+
+	res := update.Check(version, "opcua-"+runtime.GOOS+"-"+runtime.GOARCH)
+	if res != "" {
+		log.Info(res)
+	}
 
 	err := entrypoint.Start(signalCh)
 	if err != nil {
