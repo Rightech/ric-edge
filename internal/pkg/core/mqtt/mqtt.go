@@ -51,30 +51,44 @@ type rpc interface {
 	Call(string, []byte) []byte
 }
 
+func prepareURL(u *url.URL, tls bool) *url.URL {
+	if u.Host == "" {
+		u.Host = u.Scheme + ":" + u.Opaque
+		u.Opaque = ""
+	}
+
+	if tls {
+		u.Scheme = "tls"
+	} else {
+		u.Scheme = "tcp"
+	}
+	return u
+}
+
+func setupTLS(o *paho.ClientOptions, cert, key string) (*paho.ClientOptions, bool, error) {
+	if cert == "" || key == "" {
+		return o, false, nil
+	}
+
+	pair, err := tls.LoadX509KeyPair(cert, key)
+	if err != nil {
+		return nil, false, err
+	}
+
+	o = o.SetTLSConfig(&tls.Config{
+		Certificates:       []tls.Certificate{pair},
+		InsecureSkipVerify: true,
+	})
+
+	log.Debug("mqtt tls enabled")
+
+	return o, true, nil
+}
+
 func New(u, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) (Service, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return Service{}, err
-	}
-
-	if parsedURL.Host == "" {
-		parsedURL.Host = parsedURL.Scheme + ":" + parsedURL.Opaque
-		parsedURL.Opaque = ""
-	}
-
-	parsedURL.Scheme = "tcp"
-
-	var certs []tls.Certificate
-
-	if cert != "" && key != "" {
-		pair, err := tls.LoadX509KeyPair(cert, key)
-		if err != nil {
-			return Service{}, err
-		}
-
-		certs = []tls.Certificate{pair}
-
-		parsedURL.Scheme = "tls"
 	}
 
 	paho.CRITICAL = logger.New("critical", log.ErrorLevel)
@@ -82,7 +96,6 @@ func New(u, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) 
 	paho.WARN = logger.New("warn", log.DebugLevel)
 
 	opts := paho.NewClientOptions().
-		AddBroker(parsedURL.String()).
 		SetClientID(clientID).
 		SetAutoReconnect(true).
 		SetStore(mqtt.NewStore(db)).
@@ -90,14 +103,14 @@ func New(u, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) 
 		SetKeepAlive(5 * time.Second).
 		SetOrderMatters(false)
 
-	if certs != nil {
-		opts = opts.SetTLSConfig(&tls.Config{
-			Certificates:       certs,
-			InsecureSkipVerify: true,
-		})
-
-		log.Debug("mqtt tls enabled")
+	opts, enabled, err := setupTLS(opts, cert, key)
+	if err != nil {
+		return Service{}, err
 	}
+
+	parsedURL = prepareURL(parsedURL, enabled)
+
+	opts = opts.AddBroker(parsedURL.String())
 
 	client := paho.NewClient(opts)
 	token := client.Connect()
