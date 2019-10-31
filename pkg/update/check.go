@@ -57,7 +57,7 @@ func Check(currentVer, name string) string {
 	if release.TagName[1:] != currentVer { // [1:] required to trim v prefix
 		for _, ass := range release.Assets {
 			if strings.HasPrefix(ass.Name, name) {
-				return "New version available. Download it: " + ass.URL
+				return ass.URL
 			}
 		}
 	}

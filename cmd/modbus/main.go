@@ -42,7 +42,7 @@ func main() {
 
 	res := update.Check(version, "modbus-"+runtime.GOOS+"-"+runtime.GOARCH)
 	if res != "" {
-		log.Info(res)
+		log.Info("New version available. Download it: ", res)
 	}
 
 	err := entrypoint.Start(signalCh)
