@@ -80,16 +80,20 @@ const (
 	minByte = int64(0)
 )
 
-func parseResult(b []byte) []uint16 {
-	if len(b)%2 != 0 {
-		res := make([]uint16, len(b))
-		for i, v := range b {
-			res[i] = uint16(v)
-		}
+func parseResultByteToBits(b []byte) []uint16 {
+	var result []uint16
 
-		return res
+	for _, bt := range b {
+		for bt != 0 {
+			result = append(result, uint16(bt&1))
+			bt = bt >> 1
+		}
 	}
 
+	return result
+}
+
+func parseResult(b []byte) []uint16 {
 	res := make([]uint16, 0, len(b)/2)
 
 	for i := 0; i < len(b)-1; i += 2 {
@@ -223,7 +227,7 @@ func (s Service) readCoils(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return parseResult(res), nil
+	return parseResultByteToBits(res), nil
 }
 
 func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
