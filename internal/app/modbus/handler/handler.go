@@ -83,6 +83,15 @@ const (
 )
 
 func parseResult(b []byte) []uint16 {
+	if len(b)%2 != 0 {
+		res := make([]uint16, len(b))
+		for i, v := range b {
+			res[i] = uint16(v)
+		}
+
+		return res
+	}
+
 	res := make([]uint16, 0, len(b)/2)
 
 	for i := 0; i < len(b)-1; i += 2 {
