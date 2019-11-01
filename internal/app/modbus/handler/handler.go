@@ -86,7 +86,7 @@ func parseResultByteToBits(b []byte) []uint16 {
 	for _, bt := range b {
 		for bt != 0 {
 			result = append(result, uint16(bt&1))
-			bt = bt >> 1
+			bt >>= 1
 		}
 	}
 
