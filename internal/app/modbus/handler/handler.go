@@ -49,7 +49,7 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.readCoils(req.Params)
 	case "modbus-read-discrete":
 		res, err = s.readDiscreteInputs(req.Params)
-	case "modbus-write-single-coil":
+	case "modbus-write-coil":
 		res, err = s.writeSingleCoil(req.Params)
 	case "modbus-write-multiple-coils":
 		res, err = s.writeMultipleCoils(req.Params)
@@ -59,7 +59,7 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.readHoldingRegisters(req.Params)
 	case "modbus-write-register":
 		res, err = s.writeSingleRegister(req.Params)
-	case "write-multiple-registers":
+	case "modbus-write-multiple-registers":
 		res, err = s.writeMultipleRegisters(req.Params)
 	// case "read-write-multiple-registers":
 	// 	res, err = s.h.ReadWriteMultipleRegisters(req.Params)
