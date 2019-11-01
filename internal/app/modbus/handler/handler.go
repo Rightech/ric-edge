@@ -17,11 +17,9 @@
 package handler
 
 import (
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"io/ioutil"
-	"strings"
+	"math"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
@@ -168,21 +166,35 @@ func getTwoUint16(params objx.Map, k1, k2 string) (uint16, uint16, error) {
 	return v1, v2, nil
 }
 
-func getBytes(params objx.Map, k string) ([]byte, error) {
+func getArray(params objx.Map, k string) ([]interface{}, error) {
 	v1 := params.Get(k)
 
-	if !v1.IsStr() {
-		return nil, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be base64")
+	if !v1.IsInterSlice() {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be array")
 	}
 
-	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v1.Str()))
+	return v1.InterSlice(), nil
+}
 
-	decoded, err := ioutil.ReadAll(decoder)
-	if err != nil {
-		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
+func processIntArrayItem(k string, values []interface{}, callback func(int64) error) error {
+	for _, v := range values {
+		num, ok := v.(json.Number)
+		if !ok {
+			return jsonrpc.ErrInvalidParams.AddData("msg", k+" should be array of numbers")
+		}
+
+		item, err := num.Int64()
+		if err != nil {
+			return jsonrpc.ErrInvalidParams.AddData("msg", k+" should be array of uint16")
+		}
+
+		err = callback(item)
+		if err != nil {
+			return err
+		}
 	}
 
-	return decoded, nil
+	return nil
 }
 
 func getAddrAndQuantity(params objx.Map) (uint16, uint16, error) {
@@ -274,13 +286,48 @@ func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
 	return result[0], nil
 }
 
+func buildProcessCoilsArray(k string, bytes []byte) func(int64) error {
+	i := 0
+	pos := 0
+
+	return func(item int64) error {
+		if pos == 8 {
+			pos = 0
+			i++
+		}
+
+		if item != 0 && item != 1 {
+			return jsonrpc.ErrInvalidParams.AddData("msg", "element of "+k+" should be 1 or 0")
+		}
+
+		if item == 1 {
+			bytes[i] |= (1 << pos)
+		}
+
+		pos++
+
+		return nil
+	}
+}
+
 func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
 	addr, quantity, err := getAddrAndQuantity(params)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := getBytes(params, "value")
+	values, err := getArray(params, "value")
+	if err != nil {
+		return nil, err
+	}
+
+	if int(quantity) != len(values) {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "wrong quantity")
+	}
+
+	bytes := make([]byte, int(math.Ceil(float64(quantity)/8.0)))
+
+	err = processIntArrayItem("value", values, buildProcessCoilsArray("value", bytes))
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +339,7 @@ func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	res, err := cli.WriteMultipleCoils(addr, quantity, value)
+	res, err := cli.WriteMultipleCoils(addr, quantity, bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -363,13 +410,38 @@ func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
 	return parseResult(res), nil
 }
 
+func buildProcessRegistersArray(k string, bytes []byte) func(int64) error {
+	i := 0
+
+	return func(item int64) error {
+		if !(minUint16 <= item && item <= maxUint16) {
+			return jsonrpc.ErrInvalidParams.AddData("msg", k+" should be array of uint16")
+		}
+
+		binary.BigEndian.PutUint16(bytes[i:i+2], uint16(item))
+		i += 2
+		return nil
+	}
+}
+
 func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
 	addr, quantity, err := getAddrAndQuantity(params)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := getBytes(params, "value")
+	values, err := getArray(params, "value")
+	if err != nil {
+		return nil, err
+	}
+
+	if int(quantity) != len(values) {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "wrong quantity")
+	}
+
+	bytes := make([]byte, quantity*2)
+
+	err = processIntArrayItem("value", values, buildProcessRegistersArray("value", bytes))
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +453,7 @@ func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	res, err := cli.WriteMultipleRegisters(addr, quantity, value)
+	res, err := cli.WriteMultipleRegisters(addr, quantity, bytes)
 	if err != nil {
 		return nil, err
 	}
