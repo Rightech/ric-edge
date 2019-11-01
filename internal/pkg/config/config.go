@@ -35,7 +35,7 @@ func Init(version []string) {
 	if len(version) > 0 && version[0] != "" {
 		viper.Set("version", version[0])
 	} else {
-		viper.Set("version", "unknown")
+		viper.Set("version", "0.0.0")
 	}
 
 	viper.SetDefault("log_level", "info")

@@ -53,7 +53,8 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	// in this channel transport send jsonrpc requests
 	requestsCh := make(chan []byte)
 
-	sock, err := ws.New(viper.GetInt("ws_port"), requestsCh)
+	sock, err := ws.New(viper.GetInt("ws_port"),
+		viper.GetString("version"), requestsCh)
 	if err != nil {
 		return err
 	}

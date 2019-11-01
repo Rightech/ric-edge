@@ -36,7 +36,8 @@ func Start(done <-chan os.Signal) error {
 		return err
 	}
 
-	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("snmp.ws_path"))
+	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("version"),
+		viper.GetString("snmp.ws_path"))
 	if err != nil {
 		return err
 	}

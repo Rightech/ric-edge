@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/pkg/nanoid"
 	"github.com/gorilla/websocket"
@@ -57,11 +58,11 @@ type conn struct {
 
 // Service represent web socket server (or http fallback server)
 type Service struct {
-	upgrader websocket.Upgrader
-	srv      *http.Server
-
-	mx    sync.RWMutex
-	conns map[string]conn
+	upgrader  websocket.Upgrader
+	srv       *http.Server
+	verConstr *semver.Constraints
+	mx        sync.RWMutex
+	conns     map[string]conn
 
 	done       chan struct{}
 	requestsCh chan<- []byte
@@ -83,13 +84,41 @@ func requestsWrapper(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func versionToConstr(v string) (*semver.Constraints, error) {
+	if v[0] == 'v' {
+		v = v[1:]
+	}
+
+	tmp := strings.Split(v, ".")
+
+	if len(tmp) < 2 {
+		return nil, errors.New("wrong version format")
+	}
+
+	if len(tmp) == 2 {
+		tmp = append(tmp, "")
+	}
+
+	tmp[2] = "0"
+
+	v = strings.Join(tmp, ".")
+
+	return semver.NewConstraint("~" + v)
+}
+
 // New create new WebSocket server
-func New(port int, requestsCh chan<- []byte) (*Service, error) {
+func New(port int, version string, requestsCh chan<- []byte) (*Service, error) {
 	if !(1 <= port && port <= 65535) {
 		return nil, errors.New("ws.new: wrong port")
 	}
 
+	vc, err := versionToConstr(version)
+	if err != nil {
+		return nil, err
+	}
+
 	ws := &Service{
+		verConstr:  vc,
 		conns:      make(map[string]conn, 10),
 		done:       make(chan struct{}),
 		requestsCh: requestsCh,
@@ -162,6 +191,23 @@ func (s *Service) Close() error {
 func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 	logger := r.Context().Value(loggerKey).(*log.Entry)
 	sid := r.Context().Value(sessionKey).(string)
+
+	connectorVer, err := semver.NewVersion(r.Header.Get("x-connector-version"))
+	if err != nil {
+		err := fmt.Errorf("broken connector version: %w", err)
+		if err := writeError(w, err, http.StatusBadRequest); err != nil {
+			logger.WithError(err).Error("ws:handler:write error")
+		}
+		return
+	}
+
+	if !s.verConstr.Check(connectorVer) {
+		err := errors.New("incompatible connector/core version")
+		if err := writeError(w, err, http.StatusBadRequest); err != nil {
+			logger.WithError(err).Error("ws:handler:write error")
+		}
+		return
+	}
 
 	url := strings.Split(r.URL.Path, "/")
 	if len(url) != 2 {

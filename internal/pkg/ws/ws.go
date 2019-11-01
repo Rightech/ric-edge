@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
@@ -31,18 +32,20 @@ import (
 
 type Service struct {
 	u    url.URL
+	ver  string
 	done chan struct{}
 	mx   sync.RWMutex
 	ws   *websocket.Conn
 }
 
-func New(port int, path string) (*Service, error) {
+func New(port int, version, path string) (*Service, error) {
 	if !(1 <= port && port <= 65535) {
 		return nil, errors.New("ws.new: wrong port")
 	}
 
 	s := &Service{
 		u:    url.URL{Scheme: "ws", Host: "localhost:" + strconv.Itoa(port), Path: path},
+		ver:  version,
 		done: make(chan struct{}),
 	}
 
@@ -50,7 +53,10 @@ func New(port int, path string) (*Service, error) {
 }
 
 func (s *Service) Connect() error {
-	c, resp, err := websocket.DefaultDialer.Dial(s.u.String(), nil)
+	headers := make(http.Header)
+	headers.Add("x-connector-version", s.ver)
+
+	c, resp, err := websocket.DefaultDialer.Dial(s.u.String(), headers)
 	if err != nil {
 		if resp != nil {
 			data, err := ioutil.ReadAll(resp.Body)

@@ -57,7 +57,8 @@ func Start(done <-chan os.Signal) error {
 		return errors.New("modbus.mode should be tcp, rtu or ascii but " + mode + " given")
 	}
 
-	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("modbus.ws_path"))
+	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("version"),
+		viper.GetString("modbus.ws_path"))
 	if err != nil {
 		return err
 	}
