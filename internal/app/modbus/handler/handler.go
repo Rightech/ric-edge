@@ -234,10 +234,22 @@ func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
 	return parseResult(res), nil
 }
 
+const modbusTrueValue = 0xFF00
+
 func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
 	addr, value, err := getAddrAndValue(params)
 	if err != nil {
 		return nil, err
+	}
+
+	if value > 1 {
+		return nil, jsonrpc.ErrInvalidParams.
+			AddData("msg", "bad value. only 0 or 1 allowed").
+			AddData("v", value)
+	}
+
+	if value == 1 {
+		value = modbusTrueValue
 	}
 
 	slaveID, err := getSlaveID(params)
@@ -252,7 +264,13 @@ func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return parseResult(res), nil
+	result := parseResult(res)
+
+	if result[0] == modbusTrueValue {
+		result[0] = 1
+	}
+
+	return result[0], nil
 }
 
 func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
