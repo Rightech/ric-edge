@@ -17,7 +17,10 @@
 package handler
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"strings"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
@@ -45,18 +48,18 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.readCoils(req.Params)
 	case "modbus-read-discrete":
 		res, err = s.readDiscreteInputs(req.Params)
-	// case "write-single-coil":
-	// 	res, err = s.h.WriteSingleCoil(req.Params)
-	// case "write-multiple-coils":
-	// 	res, err = s.h.WriteMultipleCoils(req.Params)
+	case "modbus-write-single-coil":
+		res, err = s.writeSingleCoil(req.Params)
+	case "modbus-write-multiple-coils":
+		res, err = s.writeMultipleCoils(req.Params)
 	case "modbus-read-input":
 		res, err = s.readInputRegisters(req.Params)
 	case "modbus-read-holding":
 		res, err = s.readHoldingRegisters(req.Params)
 	case "modbus-write-register":
 		res, err = s.writeSingleRegister(req.Params)
-	// case "write-multiple-registers":
-	// 	res, err = s.h.WriteMultipleRegisters(req.Params)
+	case "write-multiple-registers":
+		res, err = s.writeMultipleRegisters(req.Params)
 	// case "read-write-multiple-registers":
 	// 	res, err = s.h.ReadWriteMultipleRegisters(req.Params)
 	// case "mask-write-register":
@@ -145,21 +148,21 @@ func getTwoUint16(params objx.Map, k1, k2 string) (uint16, uint16, error) {
 	return v1, v2, nil
 }
 
-// func getBytes(params objx.Map, k string) ([]byte, error) {
-// 	v1 := params.Get(k)
+func getBytes(params objx.Map, k string) ([]byte, error) {
+	v1 := params.Get(k)
 
-// 	if !v1.IsStr() {
-// 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be base64")
-// 	}
+	if !v1.IsStr() {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", k+" required and should be base64")
+	}
 
-// 	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v1.Str()))
-// 	decoded, err := ioutil.ReadAll(decoder)
-// 	if err != nil {
-// 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
-// 	}
+	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v1.Str()))
+	decoded, err := ioutil.ReadAll(decoder)
+	if err != nil {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
+	}
 
-// 	return decoded, nil
-// }
+	return decoded, nil
+}
 
 func getAddrAndQuantity(params objx.Map) (uint16, uint16, error) {
 	return getTwoUint16(params, "address", "quantity")
@@ -201,28 +204,42 @@ func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
 	return cli.ReadDiscreteInputs(addr, quantity)
 }
 
-// func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
-// 	addr, value, err := getAddrAndValue(params)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
+	addr, value, err := getAddrAndValue(params)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return s.cli.WriteSingleCoil(addr, value)
-// }
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
 
-// func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
-// 	addr, quantity, err := getAddrAndQuantity(params)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	cli := s.getClient(slaveID)
 
-// 	value, err := getBytes(params, "value")
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	return cli.WriteSingleCoil(addr, value)
+}
 
-// 	return s.cli.WriteMultipleCoils(addr, quantity, value)
-// }
+func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
+	addr, quantity, err := getAddrAndQuantity(params)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := getBytes(params, "value")
+	if err != nil {
+		return nil, err
+	}
+
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
+	cli := s.getClient(slaveID)
+
+	return cli.WriteMultipleCoils(addr, quantity, value)
+}
 
 func (s Service) readInputRegisters(params objx.Map) (interface{}, error) {
 	addr, quantity, err := getAddrAndQuantity(params)
@@ -272,19 +289,26 @@ func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
 	return cli.WriteSingleRegister(addr, value)
 }
 
-// func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
-// 	addr, quantity, err := getAddrAndQuantity(params)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
+	addr, quantity, err := getAddrAndQuantity(params)
+	if err != nil {
+		return nil, err
+	}
 
-// 	value, err := getBytes(params, "value")
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	value, err := getBytes(params, "value")
+	if err != nil {
+		return nil, err
+	}
 
-// 	return s.cli.WriteMultipleRegisters(addr, quantity, value)
-// }
+	slaveID, err := getSlaveID(params)
+	if err != nil {
+		return nil, err
+	}
+
+	cli := s.getClient(slaveID)
+
+	return cli.WriteMultipleRegisters(addr, quantity, value)
+}
 
 // func (s Service) readWriteMultipleRegisters(params objx.Map) (interface{}, error) {
 // 	readAddr, readQuantity, err := getTwoUint16(params, "read_address", "read_quantity")
