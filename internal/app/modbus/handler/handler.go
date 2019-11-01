@@ -18,6 +18,7 @@ package handler
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"io/ioutil"
 	"strings"
@@ -80,6 +81,16 @@ const (
 	maxByte = int64(255)
 	minByte = int64(0)
 )
+
+func parseResult(b []byte) []uint16 {
+	res := make([]uint16, 0, len(b)/2)
+
+	for i := 0; i < len(b)-1; i += 2 {
+		res = append(res, binary.BigEndian.Uint16(b[i:i+2]))
+	}
+
+	return res
+}
 
 func getInt64(params objx.Map, k string, def ...int64) (int64, error) {
 	val := params.Get(k)
@@ -185,7 +196,12 @@ func (s Service) readCoils(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.ReadCoils(addr, quantity)
+	res, err := cli.ReadCoils(addr, quantity)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
@@ -201,7 +217,12 @@ func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.ReadDiscreteInputs(addr, quantity)
+	res, err := cli.ReadDiscreteInputs(addr, quantity)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
@@ -217,7 +238,12 @@ func (s Service) writeSingleCoil(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.WriteSingleCoil(addr, value)
+	res, err := cli.WriteSingleCoil(addr, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
@@ -238,7 +264,12 @@ func (s Service) writeMultipleCoils(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.WriteMultipleCoils(addr, quantity, value)
+	res, err := cli.WriteMultipleCoils(addr, quantity, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) readInputRegisters(params objx.Map) (interface{}, error) {
@@ -254,7 +285,12 @@ func (s Service) readInputRegisters(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.ReadInputRegisters(addr, quantity)
+	res, err := cli.ReadInputRegisters(addr, quantity)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) readHoldingRegisters(params objx.Map) (interface{}, error) {
@@ -270,7 +306,12 @@ func (s Service) readHoldingRegisters(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.ReadHoldingRegisters(addr, quantity)
+	res, err := cli.ReadHoldingRegisters(addr, quantity)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
@@ -286,7 +327,12 @@ func (s Service) writeSingleRegister(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.WriteSingleRegister(addr, value)
+	res, err := cli.WriteSingleRegister(addr, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
@@ -307,7 +353,12 @@ func (s Service) writeMultipleRegisters(params objx.Map) (interface{}, error) {
 
 	cli := s.getClient(slaveID)
 
-	return cli.WriteMultipleRegisters(addr, quantity, value)
+	res, err := cli.WriteMultipleRegisters(addr, quantity, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseResult(res), nil
 }
 
 // func (s Service) readWriteMultipleRegisters(params objx.Map) (interface{}, error) {
