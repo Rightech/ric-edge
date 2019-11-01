@@ -81,6 +81,7 @@ const (
 )
 
 func parseResultByteToBits(b []byte) []uint16 {
+	// uint16 required here because json encode byte array as base64
 	var result []uint16
 
 	for _, bt := range b {
