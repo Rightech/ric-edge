@@ -32,6 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("can't new device : %s", err)
 	}
+
 	ble.SetDefaultDevice(d)
 
 	log.Info("Address: ", d.Address().String())
@@ -44,6 +45,7 @@ func main() {
 	}
 
 	ctx := ble.WithSigHandler(context.WithCancel(context.Background()))
+
 	err = ble.AdvertiseNameAndServices(ctx, "ble-srv", testSvc.UUID)
 	if errors.Is(err, context.Canceled) {
 		log.Info("canceled")

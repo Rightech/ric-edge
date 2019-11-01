@@ -66,10 +66,12 @@ func errIfBadStatus(resp *http.Response) error {
 
 func (s Service) LoadModel(id string) (m Model, err error) {
 	var resp *http.Response
+
 	resp, err = s.client.Get(s.baseURL.GetModel(id))
 	if err != nil {
 		return
 	}
+
 	defer resp.Body.Close()
 
 	err = errIfBadStatus(resp)
@@ -90,10 +92,12 @@ func (s Service) LoadModel(id string) (m Model, err error) {
 
 func (s Service) LoadObject(id string) (o Object, err error) {
 	var resp *http.Response
+
 	resp, err = s.client.Get(s.baseURL.GetObject(id))
 	if err != nil {
 		return
 	}
+
 	defer resp.Body.Close()
 
 	err = errIfBadStatus(resp)

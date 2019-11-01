@@ -64,9 +64,11 @@ func (s *Service) Connect() error {
 				log.WithError(err).Error("read error response body")
 				return err
 			}
+
 			resp.Body.Close()
 			log.Error(string(data))
 		}
+
 		return err
 	}
 
@@ -121,6 +123,7 @@ func (s *Service) NextReader() (io.Reader, error) {
 		}
 
 		log.WithError(err).Info("disconnected from core")
+
 		return nil, err
 	}
 

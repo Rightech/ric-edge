@@ -37,6 +37,7 @@ func (f Formatter) Format(entry *logrus.Entry) ([]byte, error) {
 	modified := entry.WithField(f.field, f.formatter(f.finder.FindCaller()))
 	modified.Level = entry.Level
 	modified.Message = entry.Message
+
 	return f.original.Format(modified)
 }
 

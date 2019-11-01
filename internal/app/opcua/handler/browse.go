@@ -52,6 +52,7 @@ func join(a, b string) string {
 	if a == "" {
 		return b
 	}
+
 	return a + "." + b
 }
 
@@ -179,17 +180,21 @@ func buildNodeList(def nodeDef, n *opcua.Node, level int) ([]nodeDef, error) {
 			if err != nil {
 				return fmt.Errorf("browse children: %w", err)
 			}
+
 			nodes = append(nodes, children...)
 		}
+
 		return nil
 	}
 
 	if err := browseChildren(id.HasComponent); err != nil {
 		return nil, err
 	}
+
 	if err := browseChildren(id.Organizes); err != nil {
 		return nil, err
 	}
+
 	if err := browseChildren(id.HasProperty); err != nil {
 		return nil, err
 	}

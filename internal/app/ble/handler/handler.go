@@ -68,6 +68,7 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
+
 	return
 }
 
@@ -94,6 +95,7 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 			v.Name = a.LocalName()
 			v.RSSI = a.RSSI()
 			v.Connectable = a.Connectable()
+
 			return
 		}
 
@@ -133,6 +135,7 @@ func (s Service) discover(params objx.Map) (interface{}, error) {
 	defer cancel()
 
 	var err error
+
 	cli, ok := s.conns[address]
 	if !ok {
 		cli, err = s.dev.Dial(ctx, ble.NewAddr(address))
@@ -146,6 +149,7 @@ func (s Service) discover(params objx.Map) (interface{}, error) {
 			cli.CancelConnection() // nolint: errcheck
 		}
 	}()
+
 	return cli.DiscoverProfile(true)
 }
 
@@ -195,6 +199,7 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 			cli.CancelConnection() // nolint: errcheck
 		}
 	}()
+
 	srv, err := cli.DiscoverServices([]ble.UUID{srvUUID})
 	if err != nil {
 		return nil, err
@@ -304,6 +309,7 @@ func (s Service) subscribe(params objx.Map) (interface{}, error) {
 
 func (s Service) subscribeCancel(params objx.Map) (interface{}, error) {
 	address := params.Get("device").Str()
+
 	cli, ok := s.conns[address]
 	if !ok {
 		return nil, jsonrpc.ErrInvalidRequest.AddData("msg", "sub not found")

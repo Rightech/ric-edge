@@ -70,6 +70,7 @@ func Download(url, name string) {
 
 	ctx, cancel := context.WithCancel(resp.Request.Context())
 	defer cancel()
+
 	go printStat(ctx, resp.ContentLength, file)
 
 	_, err = io.Copy(file, resp.Body)

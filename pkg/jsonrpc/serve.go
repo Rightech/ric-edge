@@ -42,6 +42,7 @@ func ServeWithReconnect(ctx context.Context, cli TransportWithConnect, caller Ca
 		if err != nil {
 			t := time.NewTicker(retriesSleep)
 			counter := 0
+
 			for counter >= 0 {
 				select {
 				case <-ctx.Done():
@@ -51,6 +52,7 @@ func ServeWithReconnect(ctx context.Context, cli TransportWithConnect, caller Ca
 						log.Info("try reconnect to core")
 					}
 					counter++
+
 					err := cli.Connect()
 					if err != nil {
 						log.WithError(err).Debug("reconnect error")

@@ -57,6 +57,7 @@ func logFormatter() log.Formatter {
 	format := viper.GetString("log_format")
 
 	var logFmt log.Formatter
+
 	switch format {
 	case "text":
 		logFmt = &log.TextFormatter{

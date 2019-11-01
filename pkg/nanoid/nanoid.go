@@ -33,6 +33,7 @@ func New(customSize ...int) string {
 	}
 
 	bytes := make([]byte, size)
+
 	_, err := rand.Read(bytes)
 	if err != nil {
 		panic(err)
@@ -41,5 +42,6 @@ func New(customSize ...int) string {
 	for i := 0; i < size; i++ {
 		bytes[i] = charset[bytes[i]&max]
 	}
+
 	return string(bytes[:size])
 }

@@ -39,7 +39,7 @@ bench:  ##
 
 lint:  ##
 	## lint project by https://github.com/golangci/golangci-lint
-	@golangci-lint run --enable-all cmd/... internal/... pkg/... tools/...
+	@golangci-lint run --fix --enable-all cmd/... internal/... pkg/... tools/...
 
 # "|| true" required for prevent make to output error message when app
 # stopped by Ctrl+C

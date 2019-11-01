@@ -36,12 +36,14 @@ func (f FilePosCallFinder) FindCaller() (string, string, int) {
 		function string
 		line     int
 	)
+
 	for i := 0; i < 10; i++ {
 		pc, file, line = getCaller(f.Skip + i)
 		if !f.skipFile(file) {
 			break
 		}
 	}
+
 	if pc != 0 {
 		frames := runtime.CallersFrames([]uintptr{pc})
 		frame, _ := frames.Next()
@@ -68,9 +70,11 @@ func getCaller(skip int) (uintptr, string, int) {
 	}
 
 	n := 0
+
 	for i := len(file) - 1; i > 0; i-- {
 		if file[i] == '/' {
 			n++
+
 			if n >= 2 {
 				file = file[i+1:]
 				break

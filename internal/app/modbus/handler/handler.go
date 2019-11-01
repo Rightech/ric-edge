@@ -176,6 +176,7 @@ func getBytes(params objx.Map, k string) ([]byte, error) {
 	}
 
 	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v1.Str()))
+
 	decoded, err := ioutil.ReadAll(decoder)
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())

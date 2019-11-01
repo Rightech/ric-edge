@@ -41,6 +41,7 @@ func (c *client) Head(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return c.Do(req)
 }
 
@@ -49,6 +50,7 @@ func (c *client) Get(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return c.Do(req)
 }
 

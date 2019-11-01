@@ -48,6 +48,7 @@ func (e Error) SetCode(c int) Error {
 	if -32099 <= e.code && e.code <= -32000 && -32099 <= c && c <= -32000 {
 		e.code = c
 	}
+
 	return e
 }
 

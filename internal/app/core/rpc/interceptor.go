@@ -122,12 +122,14 @@ func (s Service) requestsListener() {
 				"value": string(msg),
 				"error": err,
 			}).Error("requestsListener: unmarshal json")
+
 			continue
 		}
 
 		if len(request.Params.Value) == 0 {
 			log.WithField("value", string(msg)).
 				Error("requestsListener: empty value in notification")
+
 			continue
 		}
 
@@ -135,6 +137,7 @@ func (s Service) requestsListener() {
 		if parent == "" {
 			log.WithField("value", string(msg)).
 				Error("requestsListener: empty _parent in request")
+
 			continue
 		}
 
@@ -150,8 +153,10 @@ func (s Service) requestsListener() {
 				"param": parent,
 				"error": err,
 			}).Error("requestsListener: set state")
+
 			continue
 		}
+
 		s.sendState(parent, request.Params.Value)
 	}
 }
@@ -165,6 +170,7 @@ func (s Service) buildJobFn(v cloud.ActionConfig) func() {
 
 func (s Service) subscribe(v cloud.ActionConfig) {
 	resp := s.Call(v.Connector, v.Payload)
+
 	idVal := jsoniter.ConfigFastest.Get(resp, "result").Get("process_id")
 	if idVal.LastError() != nil {
 		log.WithError(idVal.LastError()).Error("process_id not found")
@@ -210,6 +216,7 @@ func (s Service) Call(name string, payload []byte) []byte {
 
 	if id.IsNil() {
 		data.Set("id", nanoid.New())
+
 		changed = true
 	}
 
@@ -219,6 +226,7 @@ func (s Service) Call(name string, payload []byte) []byte {
 		devID = devID[2 : len(devID)-2]
 		devID = strings.ReplaceAll(devID, "object.config.", "")
 		data.Set("params.device", s.obj.Config.Get(devID).Str())
+
 		changed = true
 	}
 
@@ -236,7 +244,9 @@ func (s Service) Call(name string, payload []byte) []byte {
 		if !timer.Stop() {
 			<-timer.C
 		}
+
 		s.updateState(data, msg)
+
 		return msg
 	case <-timer.C:
 		return jsonrpc.BuildErrResp(data.Get("id").Str(), errTimeout)
@@ -260,6 +270,7 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 			"method": req.Get("method").Str(),
 			"error":  err,
 		}).Error("updateState: unmarshal json")
+
 		return
 	}
 

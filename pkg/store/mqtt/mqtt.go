@@ -108,6 +108,7 @@ func (s Service) Get(key string) packets.ControlPacket {
 
 func (s Service) All() []string {
 	var keys []string
+
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bk := tx.Bucket([]byte(bucketName))
 

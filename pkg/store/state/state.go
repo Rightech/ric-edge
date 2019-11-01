@@ -84,6 +84,7 @@ func (s Service) Get(key string) map[string]interface{} {
 	s.mx.RLock()
 	val := s.state.Get(key)
 	s.mx.RUnlock()
+
 	if val.IsNil() {
 		return nil
 	}

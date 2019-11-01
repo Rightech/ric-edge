@@ -61,6 +61,7 @@ func main() {
 		res := update.Check(version, name)
 		if res != "" {
 			log.Info("New version available. Download it: ", res)
+
 			if viper.GetBool("auto_download_updates") {
 				update.Download(res, name)
 				return

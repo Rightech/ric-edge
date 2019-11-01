@@ -62,6 +62,7 @@ func prepareURL(u *url.URL, tls bool) *url.URL {
 	} else {
 		u.Scheme = "tcp"
 	}
+
 	return u
 }
 
@@ -113,6 +114,7 @@ func New(u, clientID, cert, key string, db mqtt.DB, cli rpc, sCh <-chan []byte) 
 	opts = opts.AddBroker(parsedURL.String())
 
 	client := paho.NewClient(opts)
+
 	token := client.Connect()
 	if token.Wait() && token.Error() != nil {
 		return Service{}, token.Error()

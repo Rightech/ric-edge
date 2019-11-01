@@ -79,6 +79,7 @@ func newDecoder(r NextReader) (*jsoniter.Decoder, error) {
 
 	decoder := jsoniter.ConfigFastest.NewDecoder(reader)
 	decoder.UseNumber()
+
 	return decoder, nil
 }
 
@@ -91,6 +92,7 @@ func newEncoder(w NextWriter) (*jsoniter.Stream, io.Closer, error) {
 	// we can't use jsoniter.Encoder because on Encode it writes \n at the end
 	// so we use pure stream
 	stream := jsoniter.ConfigFastest.BorrowStream(writer)
+
 	return stream, writer, nil
 }
 
@@ -103,6 +105,7 @@ func (s Service) Serve(ctx context.Context) error {
 
 		var req Request
 		err = decoder.Decode(&req)
+
 		if errors.Is(err, io.EOF) {
 			// if error is a EOF we should return error
 			// in this case service will try reconnect to transport
@@ -114,6 +117,7 @@ func (s Service) Serve(ctx context.Context) error {
 		res := s.handleMessage(req, err)
 		s.mx.Lock()
 		encoder, closer, err := newEncoder(s.tr) // json encoder
+
 		if err != nil {
 			s.mx.Unlock()
 			return err
@@ -191,10 +195,12 @@ func (n NotificationService) Send(value interface{}) {
 	for {
 		n.s.mx.Lock()
 		enc, closer, err := newEncoder(n.s.tr)
+
 		if err != nil {
 			log.Debug("cant send")
 			n.s.mx.Unlock()
 			time.Sleep(retriesSleep) // wait and try again
+
 			continue
 		}
 
@@ -224,6 +230,7 @@ func (s Service) call(req Request) (res interface{}, err error) {
 	}()
 
 	res, err = s.c.Call(req)
+
 	return
 }
 
@@ -269,9 +276,11 @@ func buildResult(id jsoniter.RawMessage, res interface{}, e error) response {
 	if e != nil {
 		res = nil
 		rerr, ok := e.(Error)
+
 		if !ok {
 			rerr = ErrServer.AddData("msg", e.Error()).SetCode(-32098)
 		}
+
 		resp.Error = &rerr
 	}
 

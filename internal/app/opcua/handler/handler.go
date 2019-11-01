@@ -53,6 +53,7 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
+
 	return
 }
 
@@ -74,6 +75,7 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read failed: %w", err)
 	}
+
 	if resp.Results[0].Status != ua.StatusOK {
 		return nil, fmt.Errorf("status not OK: %d", resp.Results[0].Status)
 	}
@@ -108,8 +110,10 @@ func parseValue(value *objx.Value) (interface{}, error) {
 						return nil, fmt.Errorf("parse to int64: %w", err)
 					}
 				}
+
 				return results, nil
 			}
+
 			results := make([]float64, len(slice))
 
 			for i, v := range value.InterSlice() {
@@ -118,10 +122,13 @@ func parseValue(value *objx.Value) (interface{}, error) {
 					return nil, fmt.Errorf("parse to double: %w", err)
 				}
 			}
+
 			return results, nil
 		case string:
-			results := make([]string, len(slice))
-			var ok bool
+			var (
+				results = make([]string, len(slice))
+				ok      bool
+			)
 
 			for i, v := range value.InterSlice() {
 				results[i], ok = v.(string)
@@ -129,6 +136,7 @@ func parseValue(value *objx.Value) (interface{}, error) {
 					return nil, errors.New("parse: different types in array")
 				}
 			}
+
 			return results, nil
 		default:
 			return nil, errors.New("parse: unknown array values type")

@@ -84,6 +84,7 @@ func (m *Model) prepare() error {
 	actionCommand := make(map[string]command)
 
 	m.walk(nil, commands, actionCommand, m.Data.Children)
+
 	return m.afterWalk(commands, actionCommand)
 }
 
@@ -141,6 +142,7 @@ func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command)
 		}
 
 		acmd[v.ID].Params["parent.id"] = v.ID
+
 		v.Payload, err = fillPayload(payload, acmd[v.ID].Params)
 		if err != nil {
 			return
@@ -169,6 +171,7 @@ func (m *Model) walk(path []string, commands map[string]Children,
 		if c.Type == "action" {
 			c.Children = nil
 			commands[c.ID] = c
+
 			continue
 		}
 
@@ -196,6 +199,7 @@ func (m *Model) walk(path []string, commands map[string]Children,
 
 		m.walk(path, commands, acmd, c.Children)
 		n := len(path) - 1
+
 		if n > -1 {
 			path = path[:n]
 		}

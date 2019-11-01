@@ -110,6 +110,7 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
+
 	return
 }
 
@@ -126,11 +127,13 @@ func parseOids(params objx.Map) ([]string, error) {
 	}
 
 	oids := make([]string, len(val.InterSlice()))
+
 	for i, v := range val.InterSlice() {
 		vv, ok := v.(string)
 		if !ok {
 			return nil, errBadOid
 		}
+
 		oids[i] = vv
 	}
 
@@ -315,49 +318,57 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 	return encodeSnmpPacket(res), nil
 }
 
-func (s Service) sendTrap(params objx.Map) (interface{}, error) {
+func (s Service) sendTrap(params objx.Map) (interface{}, error) { // nolint: funlen
 	var trap g.SnmpTrap
 
 	enterprise := params.Get("enterprise")
 	if !enterprise.IsStr() {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "enterprise should be string")
 	}
+
 	trap.Enterprise = enterprise.Str()
 
 	agentAddr := params.Get("agent_address")
 	if !agentAddr.IsStr() {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "agent_address should be string")
 	}
+
 	trap.AgentAddress = agentAddr.Str()
 
 	genericTrap, ok := params.Get("generic_trap").Data().(json.Number)
 	if !ok {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "generic_trap should be number")
 	}
+
 	gt, err := genericTrap.Int64()
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "generic_trap should be number")
 	}
+
 	trap.GenericTrap = int(gt)
 
 	specificTrap, ok := params.Get("specific_trap").Data().(json.Number)
 	if !ok {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "specific_trap should be number")
 	}
+
 	st, err := specificTrap.Int64()
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "specific_trap should be number")
 	}
+
 	trap.SpecificTrap = int(st)
 
 	timestamp, ok := params.Get("timestamp").Data().(json.Number)
 	if !ok {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "timestamp should be number")
 	}
+
 	ts, err := timestamp.Int64()
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "timestamp should be number")
 	}
+
 	trap.Timestamp = uint(ts)
 
 	pdus, err := parsePDU(params, "variables")

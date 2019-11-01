@@ -53,12 +53,16 @@ func Check(currentVer, name string) string {
 		response, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.WithError(err).Warn("read error response")
+			return ""
 		}
+
 		log.WithField("r", string(response)).Warn("check update error")
+
 		return ""
 	}
 
 	var release release
+
 	err = jsoniter.ConfigFastest.NewDecoder(resp.Body).Decode(&release)
 	if err != nil {
 		log.WithError(err).Warn("decode check update response")

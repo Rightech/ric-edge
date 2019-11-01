@@ -188,17 +188,15 @@ func (s *Service) Close() error {
 	return s.srv.Shutdown(ctx)
 }
 
-func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
-	logger := r.Context().Value(loggerKey).(*log.Entry)
-	sid := r.Context().Value(sessionKey).(string)
-
+func (s *Service) checkVersion(w http.ResponseWriter, r *http.Request, logger *log.Entry) bool {
 	connectorVer, err := semver.NewVersion(r.Header.Get("x-connector-version"))
 	if err != nil {
 		err := fmt.Errorf("broken connector version: %w", err)
 		if err := writeError(w, err, http.StatusBadRequest); err != nil {
 			logger.WithError(err).Error("ws:handler:write error")
 		}
-		return
+
+		return false
 	}
 
 	if !s.verConstr.Check(connectorVer) {
@@ -206,6 +204,18 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 		if err := writeError(w, err, http.StatusBadRequest); err != nil {
 			logger.WithError(err).Error("ws:handler:write error")
 		}
+
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
+	logger := r.Context().Value(loggerKey).(*log.Entry)
+	sid := r.Context().Value(sessionKey).(string)
+
+	if !s.checkVersion(w, r, logger) {
 		return
 	}
 
@@ -215,6 +225,7 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 		if err := writeError(w, err, http.StatusBadRequest); err != nil {
 			logger.WithError(err).Error("ws:handler:write error")
 		}
+
 		return
 	}
 
@@ -223,11 +234,13 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 	s.mx.RLock()
 	_, ok := s.conns[connectorType]
 	s.mx.RUnlock()
+
 	if ok {
 		err := errors.New("connector already exists")
 		if err := writeError(w, err, http.StatusBadRequest); err != nil {
 			logger.WithError(err).Error("ws:handler:write error")
 		}
+
 		return
 	}
 
@@ -247,6 +260,7 @@ func (s *Service) handler(w http.ResponseWriter, r *http.Request) {
 		rmx: new(sync.Mutex),
 		req: make(map[string]chan<- []byte, 10),
 	}
+
 	s.mx.Lock()
 	s.conns[connectorType] = wsc
 	s.mx.Unlock()
@@ -275,6 +289,7 @@ func (s *Service) listen(conn conn) {
 			case <-s.done:
 				close(s.requestsCh)
 				conn.l.Info("disconnect client because server dies (normal)")
+
 				return
 			default:
 			}
@@ -287,14 +302,14 @@ func (s *Service) listen(conn conn) {
 			}
 
 			ll.Info("client disconnect")
+
 			return
 		}
 
 		if mt != websocket.TextMessage {
-			conn.l.WithFields(log.Fields{
-				"mt": mt,
-				"m":  string(msg),
-			}).Error("unknown message type")
+			conn.l.WithFields(log.Fields{"mt": mt, "m": string(msg)}).
+				Error("unknown message type")
+
 			continue
 		}
 
@@ -303,12 +318,14 @@ func (s *Service) listen(conn conn) {
 		if methodVal.ValueType() != jsoniter.InvalidValue {
 			// this msg is request
 			s.requestsCh <- msg
+
 			continue
 		}
 
 		idVal := jsoniter.ConfigFastest.Get(msg, "id")
 		if idVal.LastError() != nil {
 			conn.l.WithError(idVal.LastError()).Error("get id from json")
+
 			continue
 		}
 
@@ -318,9 +335,11 @@ func (s *Service) listen(conn conn) {
 		ch, ok := conn.req[id]
 		delete(conn.req, id)
 		conn.rmx.Unlock()
+
 		if !ok {
 			panic("resp chan not found")
 		}
+
 		ch <- msg
 	}
 }
@@ -331,6 +350,7 @@ func (s *Service) Call(name, id string, payload []byte) <-chan []byte {
 	s.mx.RLock()
 	conn, ok := s.conns[name]
 	s.mx.RUnlock()
+
 	if !ok {
 		resp <- jsonrpc.BuildErrResp(id, errNotFound)
 		return resp
@@ -339,12 +359,14 @@ func (s *Service) Call(name, id string, payload []byte) <-chan []byte {
 	conn.cmx.Lock()
 	err := conn.WriteMessage(websocket.TextMessage, payload)
 	conn.cmx.Unlock()
+
 	if err != nil {
 		s.closeConnOnErr(conn)
 
 		conn.l.WithError(err).Error("ws.conn.write")
 
 		resp <- jsonrpc.BuildErrResp(id, errNotAvailable.AddData("sid", conn.sid))
+
 		return resp
 	}
 
