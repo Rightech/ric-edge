@@ -35,7 +35,7 @@ github.com/hashicorp/hcl/json/token
 github.com/json-iterator/go
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/magiconair/properties v1.8.0
+# github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.4
 github.com/mattn/go-colorable
@@ -76,10 +76,12 @@ github.com/spf13/cast
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
-# github.com/spf13/viper v1.4.0
+# github.com/spf13/viper v1.5.0
 github.com/spf13/viper
 # github.com/stretchr/objx v0.2.0
 github.com/stretchr/objx
+# github.com/subosito/gotenv v1.2.0
+github.com/subosito/gotenv
 # golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
@@ -89,5 +91,5 @@ golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/yaml.v2 v2.2.2
+# gopkg.in/yaml.v2 v2.2.4
 gopkg.in/yaml.v2

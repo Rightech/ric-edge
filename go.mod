@@ -20,7 +20,7 @@ require (
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soniah/gosnmp v1.22.0
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.5.0
 	github.com/stretchr/objx v0.2.0
 	golang.org/x/sys v0.0.0-20191027211539-f8518d3b3627
 )
