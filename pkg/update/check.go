@@ -17,12 +17,13 @@
 package update
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,6 +76,7 @@ func Check(currentVer, name string) string {
 		return ""
 	}
 
+	fmt.Println(currentVer)
 	currentVersion, err := semver.NewVersion(currentVer)
 	if err != nil {
 		log.WithError(err).Warn("parse current version")

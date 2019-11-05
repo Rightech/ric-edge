@@ -1,5 +1,5 @@
-# github.com/Masterminds/semver v1.5.0
-github.com/Masterminds/semver
+# github.com/Masterminds/semver/v3 v3.0.1
+github.com/Masterminds/semver/v3
 # github.com/eclipse/paho.mqtt.golang v1.2.0
 github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
