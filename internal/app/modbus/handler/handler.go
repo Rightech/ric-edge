@@ -80,9 +80,9 @@ const (
 	minByte = int64(0)
 )
 
-func parseResultByteToBits(b []byte) []uint16 {
+func parseResultByteToBits(b []byte, quantity uint16) []uint16 {
 	// uint16 required here because json encode byte array as base64
-	var result []uint16
+	result := make([]uint16, 0, quantity)
 
 	for _, bt := range b {
 		for bt != 0 {
@@ -91,7 +91,7 @@ func parseResultByteToBits(b []byte) []uint16 {
 		}
 	}
 
-	return result
+	return result[:quantity]
 }
 
 func parseResult(b []byte) []uint16 {
@@ -228,7 +228,7 @@ func (s Service) readCoils(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	return parseResultByteToBits(res), nil
+	return parseResultByteToBits(res, quantity), nil
 }
 
 func (s Service) readDiscreteInputs(params objx.Map) (interface{}, error) {
