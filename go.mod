@@ -3,7 +3,7 @@ module github.com/Rightech/ric-edge
 go 1.13
 
 require (
-	github.com/Masterminds/semver v1.5.0
+	github.com/Masterminds/semver/v3 v3.0.1
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/etcd-io/bbolt v1.3.3
 	github.com/gopcua/opcua v0.1.6
