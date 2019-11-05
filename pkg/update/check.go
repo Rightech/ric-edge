@@ -17,7 +17,6 @@
 package update
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -76,7 +75,6 @@ func Check(currentVer, name string) string {
 		return ""
 	}
 
-	fmt.Println(currentVer)
 	currentVersion, err := semver.NewVersion(currentVer)
 	if err != nil {
 		log.WithError(err).Warn("parse current version")

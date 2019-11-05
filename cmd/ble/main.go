@@ -43,7 +43,7 @@ func main() {
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
 	if viper.GetBool("check_updates") {
-		res := update.Check(version, name)
+		res := update.Check(viper.GetString("version"), name)
 		if res != "" {
 			log.Info("New version available. Download it: ", res)
 
