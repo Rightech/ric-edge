@@ -22,12 +22,21 @@ fi
 package=$1
 version=$2
 
+# default platforms
+platforms_string="linux/amd64,linux/386,linux/arm64,linux/arm"
+
+# add additional platforms
+if [ -n "$3" ]; then
+    platforms_string=$platforms_string","$3
+fi
+
+# read platforms to array
+IFS=',' read -r -a platforms <<< "$platforms_string"
+
 package_split=(${package//\// })
 package_name=${package_split[-1]}
 
 bin_dir='./build'
-
-platforms=("linux/amd64" "linux/386" "linux/arm64" "linux/arm")
 
 echo 'Name: '$package_name
 echo 'Release version: '$version
