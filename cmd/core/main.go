@@ -63,7 +63,7 @@ func main() {
 			log.Info("New version available. Download it: ", res)
 
 			if viper.GetBool("auto_download_updates") {
-				update.Download(res, name)
+				update.Download(res)
 				return
 			}
 		}

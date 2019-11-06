@@ -30,6 +30,8 @@ func printStat(ctx context.Context, totalSize int64, file *os.File) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
+	var lastPercent int
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -41,16 +43,23 @@ func printStat(ctx context.Context, totalSize int64, file *os.File) {
 				continue
 			}
 
-			percent := float64(st.Size()) / float64(totalSize) * 100
-
-			log.Infof("Downloaded: %.0f%%", percent)
+			percent := int(float64(st.Size()) / float64(totalSize) * 100)
+			if lastPercent != percent {
+				log.Infof("Downloaded: %d%%", percent)
+				lastPercent = percent
+			}
 		}
 	}
 }
 
-func Download(url, name string) {
+func Download(url string) {
 	client := http.Client{
 		Timeout: 10 * time.Minute,
+	}
+
+	name := getName(url)
+	if name == "" {
+		return
 	}
 
 	resp, err := client.Get(url)
@@ -79,7 +88,7 @@ func Download(url, name string) {
 		return
 	}
 
-	err = file.Chmod(os.ModePerm)
+	err = setPerm(file)
 	if err != nil {
 		log.WithError(err).Warn("set permission fail")
 		return
