@@ -66,13 +66,17 @@ VERSION := $(if $(VERSION),$(VERSION),\
 
 build_all:  ##
 	## build all services
-	@for dir in $(wildcard ./cmd/*); do \
+	@for dir in $(filter-out %core %modbus,$(wildcard ./cmd/*)); do \
         ./scripts/build.sh $$dir $(VERSION); \
+    done
+
+	@for dir in $(filter %core %modbus,$(wildcard ./cmd/*)); do \
+        ./scripts/build.sh $$dir $(VERSION) windows/amd64,windows/386; \
     done
 
 build_%:  ##
 	## build any service specified by %
-	@./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION)
+	@./scripts/build.sh ./cmd/$(subst _,-,$*) $(VERSION) $(ADD_PLATFORMS)
 
 gen:  ##
 	## run go generate
