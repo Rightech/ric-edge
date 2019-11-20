@@ -224,6 +224,7 @@ func (s Service) fillTemplate(data []byte) ([]byte, error) {
 	if finLen <= beforeLen {
 		copy(data[begin:], name)
 		copy(data[begin+len(name):], data[end:])
+
 		return s.fillTemplate(data[:len(data)-(beforeLen-finLen)])
 	}
 
