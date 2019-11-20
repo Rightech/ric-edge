@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -198,10 +199,52 @@ func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
 	return nil
 }
 
+func (s Service) fillTemplate(data []byte) ([]byte, error) {
+	begin := bytes.Index(data, []byte("{{"))
+	if begin < 0 {
+		return data, nil
+	}
+
+	end := bytes.Index(data[begin:], []byte("}}"))
+	if end < 0 {
+		return nil, errors.New("begin found but end not found")
+	}
+
+	end = begin + end + 2
+
+	name := string(data[begin:end])
+	beforeLen := len(name)
+
+	name = strings.ReplaceAll(strings.Trim(name, " {}"), "object.config.", "")
+
+	name = s.obj.Config.Get(name).Str()
+
+	finLen := len(name)
+
+	if finLen <= beforeLen {
+		copy(data[begin:], name)
+		copy(data[begin+len(name):], data[end:])
+		return s.fillTemplate(data[:len(data)-(beforeLen-finLen)])
+	}
+
+	after := data[end:]
+	data = append(data[:begin], name...)
+	data = append(data, after...)
+
+	return s.fillTemplate(data)
+}
+
 func (s Service) Call(name string, payload []byte) []byte {
+	var err error
+
+	payload, err = s.fillTemplate(payload)
+	if err != nil {
+		return jsonrpc.BuildErrResp("", errUnmarshal.AddData("err", err.Error()))
+	}
+
 	var data objx.Map
 
-	err := jsoniter.ConfigFastest.Unmarshal(payload, &data)
+	err = jsoniter.ConfigFastest.Unmarshal(payload, &data)
 	if err != nil {
 		return jsonrpc.BuildErrResp("", errUnmarshal.AddData("err", err.Error()))
 	}
@@ -216,16 +259,6 @@ func (s Service) Call(name string, payload []byte) []byte {
 
 	if id.IsNil() {
 		data.Set("id", nanoid.New())
-
-		changed = true
-	}
-
-	device := data.Get("params.device")
-	if !device.IsNil() && device.IsStr() && strings.HasPrefix(device.Str(), "{{") {
-		devID := device.Str()
-		devID = devID[2 : len(devID)-2]
-		devID = strings.ReplaceAll(devID, "object.config.", "")
-		data.Set("params.device", s.obj.Config.Get(devID).Str())
 
 		changed = true
 	}
