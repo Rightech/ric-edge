@@ -6,3 +6,5 @@ config.toml
 /mqtt.*
 *.db
 build
+.idea
+ric-edge.iml
