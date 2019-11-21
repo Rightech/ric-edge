@@ -20,7 +20,6 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// Service wraps cron.Cron to remove id from AddFunc
 type Service struct {
 	*cron.Cron
 }
@@ -40,7 +39,11 @@ func New() Service {
 	return Service{crn}
 }
 
-func (s Service) AddFunc(spec string, fn func()) (err error) {
-	_, err = s.Cron.AddFunc(spec, fn)
-	return
+func (s Service) AddFunc(spec string, fn func()) (int, error) {
+	id, err := s.Cron.AddFunc(spec, fn)
+	return int(id), err
+}
+
+func (s Service) Remove(id int) {
+	s.Cron.Remove(cron.EntryID(id))
 }

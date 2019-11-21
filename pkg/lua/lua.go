@@ -51,6 +51,10 @@ func (s Service) Add(name, code string) error {
 	return nil
 }
 
+func (s Service) Remove(name string) {
+	delete(s.funcs, name)
+}
+
 func (s Service) Execute(name string, data interface{}) (interface{}, error) {
 	fnProto, ok := s.funcs[name]
 	if !ok {

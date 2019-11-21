@@ -48,11 +48,13 @@ type api interface {
 }
 
 type jober interface {
-	AddFunc(string, func()) error
+	AddFunc(string, func()) (int, error)
+	Remove(int)
 }
 
 type action interface {
 	Add(name, code string) error
+	Remove(name string)
 	Execute(name string, data interface{}) (interface{}, error)
 }
 
@@ -60,6 +62,7 @@ type Service struct {
 	rpc        rpcCli
 	api        api
 	job        jober
+	jobs       []int
 	action     action
 	obj        cloud.Object
 	model      cloud.Model
@@ -93,7 +96,8 @@ func New(id string, tm time.Duration, ac action, db state.DB, cleanStart bool, r
 		}
 	}
 
-	s := Service{r, api, j, ac, object, model, tm, st, requestsCh, stateCh}
+	s := Service{r, api, j, make([]int, 0), ac, object, model, tm, st,
+		requestsCh, stateCh}
 
 	go s.requestsListener()
 
@@ -102,6 +106,21 @@ func New(id string, tm time.Duration, ac action, db state.DB, cleanStart bool, r
 
 func (s Service) GetEdgeID() string {
 	return s.obj.ID
+}
+
+func (s Service) undoAll() {
+	for _, id := range s.jobs {
+		s.job.Remove(id)
+	}
+
+	for k := range s.model.Expressions() {
+		s.action.Remove(k)
+	}
+
+	// TODO:
+	// 1. stop all subscriptions
+	// 2. load new object and model
+	// 3. spawn new actions
 }
 
 var (
@@ -220,10 +239,12 @@ func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
 	for _, v := range actions {
 		switch v.Type {
 		case "schedule":
-			err := s.job.AddFunc(v.Interval, s.buildJobFn(v))
+			id, err := s.job.AddFunc(v.Interval, s.buildJobFn(v))
 			if err != nil {
 				return fmt.Errorf("spawn [%s]: %w", v.ID, err)
 			}
+
+			s.jobs = append(s.jobs, id)
 		case "subscribe":
 			go s.subscribe(v)
 		default:
