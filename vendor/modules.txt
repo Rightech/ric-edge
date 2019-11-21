@@ -82,6 +82,11 @@ github.com/spf13/viper
 github.com/stretchr/objx
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
+# github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036
+github.com/yuin/gopher-lua
+github.com/yuin/gopher-lua/ast
+github.com/yuin/gopher-lua/parse
+github.com/yuin/gopher-lua/pm
 # golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy

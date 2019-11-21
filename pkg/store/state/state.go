@@ -18,7 +18,6 @@ package state
 
 import (
 	"errors"
-	"strings"
 	"sync"
 
 	"github.com/etcd-io/bbolt"
@@ -33,7 +32,6 @@ type DB interface {
 
 const (
 	bucketName = "state"
-	keyPrefix  = "edge."
 )
 
 var (
@@ -74,7 +72,7 @@ func NewService(db DB, cleanStart bool) (Service, error) {
 	}
 
 	s.mx.Lock()
-	s.state = convert(values)
+	s.state = values
 	s.mx.Unlock()
 
 	return s, nil
@@ -89,58 +87,47 @@ func (s Service) Get(key string) map[string]interface{} {
 		return nil
 	}
 
-	vv := val.Data().([]byte)
-
-	return Convert(key, vv)
+	return map[string]interface{}{key: val.Data()}
 }
 
-func (s Service) Set(key string, v []byte) error {
-	err := s.db.Update(func(tx *bbolt.Tx) error {
+func (s Service) Set(key string, v interface{}) error {
+	s.mx.Lock()
+	s.state.Set(key, v)
+	s.mx.Unlock()
+
+	data, err := jsoniter.ConfigFastest.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	err = s.db.Update(func(tx *bbolt.Tx) error {
 		bk := tx.Bucket([]byte(bucketName))
-		return bk.Put([]byte(key), v)
+		return bk.Put([]byte(key), data)
 	})
 	if err != nil {
 		return err
 	}
 
-	s.mx.Lock()
-	s.state.Set(key, jsoniter.RawMessage(v))
-	s.mx.Unlock()
-
 	return nil
 }
 
-func Convert(key string, v []byte) map[string]interface{} {
-	key = strings.TrimPrefix(key, keyPrefix)
-
-	data := make(objx.Map, 1)
-
-	data.Set(key, jsoniter.RawMessage(v))
-
-	return data
-}
-
-func convert(state map[string][]byte) map[string]interface{} {
-	data := make(objx.Map, len(state))
-
-	for k, v := range state {
-		k = strings.TrimPrefix(k, keyPrefix)
-		data.Set(k, jsoniter.RawMessage(v))
-	}
-
-	return data
-}
-
-func (s Service) getAll() (map[string][]byte, error) {
-	var values map[string][]byte
+func (s Service) getAll() (map[string]interface{}, error) {
+	var values map[string]interface{}
 
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bk := tx.Bucket([]byte(bucketName))
 
-		values = make(map[string][]byte, bk.Stats().KeyN)
+		values = make(map[string]interface{}, bk.Stats().KeyN)
 
 		return bk.ForEach(func(k, v []byte) error {
-			values[string(k)] = v
+			var data interface{}
+
+			err := jsoniter.ConfigFastest.Unmarshal(v, &data)
+			if err != nil {
+				return err
+			}
+
+			values[string(k)] = data
 
 			return nil
 		})

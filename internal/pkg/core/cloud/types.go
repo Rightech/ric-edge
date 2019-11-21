@@ -45,6 +45,10 @@ type Children struct {
 			Type     string
 			Command  string
 			Interval string
+			Expr     string
+		}
+		Write struct {
+			Expr string
 		}
 	}
 	Command  string
@@ -58,10 +62,15 @@ type Model struct {
 		Children []Children
 	}
 	actions map[string]ActionConfig
+	expr    map[string]string
 }
 
 func (m Model) Actions() map[string]ActionConfig {
 	return m.actions
+}
+
+func (m Model) Expressions() map[string]string {
+	return m.expr
 }
 
 type command struct {
@@ -79,6 +88,7 @@ type ActionConfig struct {
 
 func (m *Model) prepare() error {
 	m.actions = make(map[string]ActionConfig)
+	m.expr = make(map[string]string)
 
 	commands := make(map[string]Children)
 	actionCommand := make(map[string]command)
@@ -173,6 +183,14 @@ func (m *Model) walk(path []string, commands map[string]Children,
 			commands[c.ID] = c
 
 			continue
+		}
+
+		if c.Edge.Read.Expr != "" {
+			m.expr["read."+c.ID] = c.Edge.Read.Expr
+		}
+
+		if c.Edge.Write.Expr != "" {
+			m.expr["write."+c.ID] = c.Edge.Write.Expr
 		}
 
 		if c.Edge.Read.Command != "" {

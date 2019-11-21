@@ -246,9 +246,11 @@ func (s Service) write(params objx.Map) (interface{}, error) {
 		return nil, err
 	}
 
-	value, err := base64.StdEncoding.DecodeString(params.Get("value").Str())
+	vaL := params.Get("value").Str()
+
+	value, err := base64.StdEncoding.DecodeString(vaL)
 	if err != nil {
-		return nil, jsonrpc.ErrParse.AddData("p", "value").AddData("msg", err.Error())
+		value = []byte(vaL)
 	}
 
 	err = cli.WriteCharacteristic(ch[0], value, false)

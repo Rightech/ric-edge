@@ -26,6 +26,7 @@ import (
 	"github.com/Rightech/ric-edge/internal/pkg/core/jobs"
 	"github.com/Rightech/ric-edge/internal/pkg/core/mqtt"
 	"github.com/Rightech/ric-edge/internal/pkg/core/ws"
+	"github.com/Rightech/ric-edge/pkg/lua"
 	"github.com/etcd-io/bbolt"
 	"github.com/spf13/viper"
 )
@@ -66,6 +67,8 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 
 	stateCh := make(chan []byte)
 
+	luaMachine := lua.New()
+
 	// wait while connectors reconnects
 	// before continue
 	time.Sleep(2 * time.Second)
@@ -73,7 +76,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	rpc, err := rpc.New(
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
-		db, viper.GetBool("core.db.clean_state"),
+		luaMachine, db, viper.GetBool("core.db.clean_state"),
 		sock, api, jobs.New(), stateCh, requestsCh)
 	if err != nil {
 		return err

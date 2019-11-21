@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -34,7 +35,7 @@ import (
 
 type stater interface {
 	Get(string) map[string]interface{}
-	Set(string, []byte) error
+	Set(string, interface{}) error
 }
 
 type rpcCli interface {
@@ -50,10 +51,16 @@ type jober interface {
 	AddFunc(string, func()) error
 }
 
+type action interface {
+	Add(name, code string) error
+	Execute(name string, data interface{}) (interface{}, error)
+}
+
 type Service struct {
 	rpc        rpcCli
 	api        api
 	job        jober
+	action     action
 	obj        cloud.Object
 	model      cloud.Model
 	timeout    time.Duration
@@ -62,7 +69,7 @@ type Service struct {
 	stateCh    chan<- []byte
 }
 
-func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
+func New(id string, tm time.Duration, ac action, db state.DB, cleanStart bool, r rpcCli,
 	api api, j jober, stateCh chan<- []byte, requestsCh <-chan []byte) (Service, error) {
 	st, err := state.NewService(db, cleanStart)
 	if err != nil {
@@ -79,7 +86,14 @@ func New(id string, tm time.Duration, db state.DB, cleanStart bool, r rpcCli,
 		return Service{}, err
 	}
 
-	s := Service{r, api, j, object, model, tm, st, requestsCh, stateCh}
+	for k, v := range model.Expressions() {
+		err := ac.Add(k, v)
+		if err != nil {
+			return Service{}, err
+		}
+	}
+
+	s := Service{r, api, j, ac, object, model, tm, st, requestsCh, stateCh}
 
 	go s.requestsListener()
 
@@ -96,11 +110,17 @@ var (
 	errBadIDType = jsonrpc.ErrInternal.AddData("msg", "id should be string or null")
 )
 
-func (s Service) sendState(parent string, value []byte) {
-	st, err := jsoniter.ConfigFastest.Marshal(state.Convert(parent, value))
+func (s Service) sendState(parent string, value interface{}) {
+	data := make(objx.Map, 1)
+
+	parent = strings.TrimPrefix(parent, "edge.")
+
+	data.Set(parent, value)
+
+	st, err := jsoniter.ConfigFastest.Marshal(data)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"value": string(value),
+			"value": value,
 			"error": err,
 		}).Error("sendState: marshal json")
 	}
@@ -108,14 +128,9 @@ func (s Service) sendState(parent string, value []byte) {
 	s.stateCh <- st
 }
 
-func (s Service) requestsListener() {
+func (s Service) requestsListener() { //nolint: funlen
 	for msg := range s.requestsCh {
-		request := struct {
-			Params struct {
-				RequestParams objx.Map `json:"__request_params"`
-				Value         jsoniter.RawMessage
-			}
-		}{}
+		var request objx.Map
 
 		err := jsoniter.ConfigFastest.Unmarshal(msg, &request)
 		if err != nil {
@@ -127,14 +142,14 @@ func (s Service) requestsListener() {
 			continue
 		}
 
-		if len(request.Params.Value) == 0 {
+		if request.Get("params.value").IsNil() {
 			log.WithField("value", string(msg)).
 				Error("requestsListener: empty value in notification")
 
 			continue
 		}
 
-		parent := request.Params.RequestParams.Get("_parent").Str()
+		parent := request.Get("params.__request_params._parent").Str()
 		if parent == "" {
 			log.WithField("value", string(msg)).
 				Error("requestsListener: empty _parent in request")
@@ -144,21 +159,41 @@ func (s Service) requestsListener() {
 
 		log.WithFields(log.Fields{
 			"parent": parent,
-			"value":  string(request.Params.Value),
+			"value":  request.Get("params.value").Data(),
 		}).Debug("requestsListener: new notification")
 
-		err = s.state.Set(parent, request.Params.Value)
+		if request.Get("params.value").IsStr() {
+			decoded, err := base64.StdEncoding.DecodeString(request.Get("params.value").Str())
+			if err == nil {
+				request.Set("params.value", decoded)
+			}
+		}
+
+		res, err := s.action.Execute("read."+parent, request.Get("params.value").Data())
 		if err != nil {
 			log.WithFields(log.Fields{
-				"value": string(msg),
-				"param": parent,
-				"error": err,
+				"value":  string(msg),
+				"parent": parent,
+				"error":  err,
+			}).Debug("err: do action")
+		}
+
+		if res == nil {
+			res = request.Get("params.value").Data()
+		}
+
+		err = s.state.Set(parent, res)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"value":  string(msg),
+				"parent": parent,
+				"error":  err,
 			}).Error("requestsListener: set state")
 
 			continue
 		}
 
-		s.sendState(parent, request.Params.Value)
+		s.sendState(parent, res)
 	}
 }
 
@@ -235,7 +270,7 @@ func (s Service) fillTemplate(data []byte) ([]byte, error) {
 	return s.fillTemplate(data)
 }
 
-func (s Service) Call(name string, payload []byte) []byte {
+func (s Service) Call(name string, payload []byte) []byte { //nolint: funlen
 	var err error
 
 	payload, err = s.fillTemplate(payload)
@@ -264,6 +299,18 @@ func (s Service) Call(name string, payload []byte) []byte {
 		changed = true
 	}
 
+	if data.Get("params._type").Str() == "write" {
+		parent := data.Get("params._parent").Str()
+		if parent != "" {
+			res, err := s.action.Execute("write."+parent, data.Get("params.value").Data())
+			if err == nil {
+				data.Set("params.value", res)
+
+				changed = true
+			}
+		}
+	}
+
 	if changed {
 		payload, err = jsoniter.ConfigFastest.Marshal(data)
 		if err != nil {
@@ -279,7 +326,9 @@ func (s Service) Call(name string, payload []byte) []byte {
 			<-timer.C
 		}
 
-		s.updateState(data, msg)
+		if data.Get("params._type").Str() == "read" {
+			msg = s.updateState(data, msg)
+		}
 
 		return msg
 	case <-timer.C:
@@ -287,15 +336,13 @@ func (s Service) Call(name string, payload []byte) []byte {
 	}
 }
 
-func (s Service) updateState(req objx.Map, resp []byte) {
+func (s Service) updateState(req objx.Map, resp []byte) []byte { //nolint: funlen
 	parent := req.Get("params._parent").Str()
 	if parent == "" {
-		return
+		return resp
 	}
 
-	result := struct {
-		Result jsoniter.RawMessage
-	}{}
+	var result objx.Map
 
 	err := jsoniter.ConfigFastest.Unmarshal(resp, &result)
 	if err != nil {
@@ -305,20 +352,40 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 			"error":  err,
 		}).Error("updateState: unmarshal json")
 
-		return
+		return resp
 	}
 
-	if len(result.Result) == 0 {
-		return
+	if result.Get("result").IsNil() {
+		return resp
 	}
 
 	// skip if its notification payload
-	isNf := jsoniter.ConfigFastest.Get(result.Result, "notification").ToBool()
-	if isNf {
-		return
+	if result.Get("result.notification").Bool() {
+		return resp
 	}
 
-	err = s.state.Set(parent, result.Result)
+	if result.Get("result").IsStr() {
+		decoded, err := base64.StdEncoding.DecodeString(result.Get("result").Str())
+		if err == nil {
+			result.Set("result", decoded)
+		}
+	}
+
+	res, err := s.action.Execute("read."+parent, result.Get("result").Data())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"value":  string(resp),
+			"parent": parent,
+			"method": req.Get("method").Str(),
+			"error":  err,
+		}).Debug("err: do action")
+	}
+
+	if res == nil {
+		res = result.Get("result").Data()
+	}
+
+	err = s.state.Set(parent, res)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"value":  string(resp),
@@ -328,5 +395,21 @@ func (s Service) updateState(req objx.Map, resp []byte) {
 		}).Error("updateState: set")
 	}
 
-	s.sendState(parent, result.Result)
+	s.sendState(parent, res)
+
+	result.Set("result", res)
+
+	data, err := jsoniter.ConfigFastest.Marshal(result)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"value":  string(resp),
+			"method": req.Get("method").Str(),
+			"error":  err,
+			"result": result,
+		}).Error("updateState: marshal result to json")
+
+		return resp
+	}
+
+	return data
 }
