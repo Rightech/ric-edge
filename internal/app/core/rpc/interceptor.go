@@ -234,15 +234,15 @@ func (s Service) spawnJobs(actions map[string]cloud.ActionConfig) error {
 	return nil
 }
 
-func (s Service) fillTemplate(data []byte) ([]byte, error) {
+func (s Service) fillTemplate(data []byte) ([]byte, bool, error) {
 	begin := bytes.Index(data, []byte("{{"))
 	if begin < 0 {
-		return data, nil
+		return data, false, nil
 	}
 
 	end := bytes.Index(data[begin:], []byte("}}"))
 	if end < 0 {
-		return nil, errors.New("begin found but end not found")
+		return nil, false, errors.New("begin found but end not found")
 	}
 
 	end = begin + end + 2
@@ -260,37 +260,40 @@ func (s Service) fillTemplate(data []byte) ([]byte, error) {
 		copy(data[begin:], name)
 		copy(data[begin+len(name):], data[end:])
 
-		return s.fillTemplate(data[:len(data)-(beforeLen-finLen)])
+		res, _, err := s.fillTemplate(data[:len(data)-(beforeLen-finLen)])
+
+		return res, true, err
 	}
 
 	after := data[end:]
 	data = append(data[:begin], name...)
 	data = append(data, after...)
 
-	return s.fillTemplate(data)
+	res, _, err := s.fillTemplate(data)
+
+	return res, true, err
 }
 
-func (s Service) Call(name string, payload []byte) []byte { //nolint: funlen
-	var err error
-
-	payload, err = s.fillTemplate(payload)
+func (s Service) prepareRequest(payload []byte) ([]byte, objx.Map, *jsonrpc.Error) {
+	payload, changed, err := s.fillTemplate(payload)
 	if err != nil {
-		return jsonrpc.BuildErrResp("", errUnmarshal.AddData("err", err.Error()))
+		e := errUnmarshal.AddData("err", err.Error())
+		return nil, nil, &e
 	}
 
 	var data objx.Map
 
 	err = jsoniter.ConfigFastest.Unmarshal(payload, &data)
 	if err != nil {
-		return jsonrpc.BuildErrResp("", errUnmarshal.AddData("err", err.Error()))
+		e := errUnmarshal.AddData("err", err.Error())
+		return nil, nil, &e
 	}
-
-	changed := false
 
 	id := data.Get("id")
 
 	if !id.IsNil() && !id.IsStr() {
-		return jsonrpc.BuildErrResp("", errBadIDType.AddData("current_id", id.Data()))
+		e := errBadIDType.AddData("current_id", id.Data())
+		return nil, nil, &e
 	}
 
 	if id.IsNil() {
@@ -318,6 +321,15 @@ func (s Service) Call(name string, payload []byte) []byte { //nolint: funlen
 		}
 	}
 
+	return payload, data, nil
+}
+
+func (s Service) Call(name string, payload []byte) []byte {
+	payload, data, err := s.prepareRequest(payload)
+	if err != nil {
+		return jsonrpc.BuildErrResp("", *err)
+	}
+
 	resultC := s.rpc.Call(name, data.Get("id").Str(), payload)
 	timer := time.NewTimer(s.timeout)
 	select {
@@ -327,7 +339,7 @@ func (s Service) Call(name string, payload []byte) []byte { //nolint: funlen
 		}
 
 		if data.Get("params._type").Str() == "read" {
-			msg = s.updateState(data, msg)
+			msg = s.prepareResponse(data, msg)
 		}
 
 		return msg
@@ -336,7 +348,7 @@ func (s Service) Call(name string, payload []byte) []byte { //nolint: funlen
 	}
 }
 
-func (s Service) updateState(req objx.Map, resp []byte) []byte { //nolint: funlen
+func (s Service) prepareResponse(req objx.Map, resp []byte) []byte { //nolint: funlen
 	parent := req.Get("params._parent").Str()
 	if parent == "" {
 		return resp
