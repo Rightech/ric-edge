@@ -77,6 +77,32 @@ func TestLuaBinaryErr(t *testing.T) {
 	}
 }
 
+func TestLuaNumToBinary(t *testing.T) {
+	fn := `
+	return num_to_binary(param)
+	`
+	l := New()
+
+	err := l.Add("test", fn)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	bt := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bt, 152)
+
+	res, err := l.Execute("test", 152)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if !reflect.DeepEqual(string(bt), res) {
+		t.Error("bt != res", bt, res)
+	}
+}
+
 func TestLuaJSON(t *testing.T) {
 	fn := `
 	return from_json(param)
