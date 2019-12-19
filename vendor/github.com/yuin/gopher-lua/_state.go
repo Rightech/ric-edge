@@ -179,28 +179,6 @@ func (cs *fixedCallFrameStack) Push(v callFrame) {
 	cs.sp++
 }
 
-func (cs *fixedCallFrameStack) Remove(sp int) {
-	psp := sp - 1
-	nsp := sp + 1
-	var pre *callFrame
-	var next *callFrame
-	if psp > 0 {
-		pre = &cs.array[psp]
-	}
-	if nsp < cs.sp {
-		next = &cs.array[nsp]
-	}
-	if next != nil {
-		next.Parent = pre
-	}
-	for i := sp; i+1 < cs.sp; i++ {
-		cs.array[i] = cs.array[i+1]
-		cs.array[i].Idx = i
-		cs.sp = i
-	}
-	cs.sp++
-}
-
 func (cs *fixedCallFrameStack) Sp() int {
 	return cs.sp
 }
@@ -1053,7 +1031,7 @@ func (ls *LState) getField(obj LValue, key LValue) LValue {
 		metaindex := ls.metaOp1(curobj, "__index")
 		if metaindex == LNil {
 			if !istable {
-				ls.RaiseError("attempt to index a non-table object(%v)", curobj.Type().String())
+				ls.RaiseError("attempt to index a non-table object(%v) with key '%s'", curobj.Type().String(), key.String())
 			}
 			return LNil
 		}
@@ -1084,7 +1062,7 @@ func (ls *LState) getFieldString(obj LValue, key string) LValue {
 		metaindex := ls.metaOp1(curobj, "__index")
 		if metaindex == LNil {
 			if !istable {
-				ls.RaiseError("attempt to index a non-table object(%v)", curobj.Type().String())
+				ls.RaiseError("attempt to index a non-table object(%v) with key '%s'", curobj.Type().String(), key)
 			}
 			return LNil
 		}
@@ -1115,7 +1093,7 @@ func (ls *LState) setField(obj LValue, key LValue, value LValue) {
 		metaindex := ls.metaOp1(curobj, "__newindex")
 		if metaindex == LNil {
 			if !istable {
-				ls.RaiseError("attempt to index a non-table object(%v)", curobj.Type().String())
+				ls.RaiseError("attempt to index a non-table object(%v) with key '%s'", curobj.Type().String(), key.String())
 			}
 			ls.RawSet(tb, key, value)
 			return
@@ -1147,7 +1125,7 @@ func (ls *LState) setFieldString(obj LValue, key string, value LValue) {
 		metaindex := ls.metaOp1(curobj, "__newindex")
 		if metaindex == LNil {
 			if !istable {
-				ls.RaiseError("attempt to index a non-table object(%v)", curobj.Type().String())
+				ls.RaiseError("attempt to index a non-table object(%v) with key '%s'", curobj.Type().String(), key)
 			}
 			tb.RawSetString(key, value)
 			return
