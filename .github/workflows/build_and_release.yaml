@@ -31,3 +31,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: build/*
+          gzip: false
