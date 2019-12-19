@@ -1,0 +1,33 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.x'
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install upx -y
+      - name: Build binaries
+        run: make build_all VERSION=${GITHUB_REF#refs/tags/v}
+        env:
+          GOFLAGS: -mod=vendor
+      - name: Calculate binaries hash
+        run: |
+          cd build
+          sha256sum * > sha256sum.txt
+      - name: Create Github release
+        uses: meeDamian/github-release@1.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: build/
