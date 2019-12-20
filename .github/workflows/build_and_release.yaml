@@ -17,14 +17,16 @@ jobs:
       - uses: actions/cache@v1
         id: upx
         with:
-          path: /usr/bin/upx
+          path: upx
           key: ${{ runner.os }}-upx-3.95
       - name: Install upx
         if: steps.upx.outputs.cache-hit != 'true'
         run: |
           wget https://github.com/upx/upx/releases/download/v3.95/upx-3.95-amd64_linux.tar.xz
           tar -xJf upx-3.95-amd64_linux.tar.xz
-          sudo mv upx-3.95-amd64_linux/upx /usr/bin/upx
+          mv upx-3.95-amd64_linux upx
+      - name: Prepare build
+        run: sudo ln -s ./upx/upx /usr/bin/upx
       - name: Build binaries
         run: make build_all VERSION=${GITHUB_REF#refs/tags/v}
         env:
