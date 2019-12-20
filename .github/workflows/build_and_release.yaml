@@ -26,7 +26,7 @@ jobs:
           tar -xJf upx-3.95-amd64_linux.tar.xz
           mv upx-3.95-amd64_linux upx
       - name: Prepare build
-        run: sudo ln -s ./upx/upx /usr/bin/upx
+        run: sudo ln -s $(pwd)/upx/upx /usr/bin/upx
       - name: Build binaries
         run: make build_all VERSION=${GITHUB_REF#refs/tags/v}
         env:
