@@ -15,7 +15,7 @@ require (
 	github.com/mgutz/logxi v0.0.0-20161027140823-aebf8a7d67ab
 	github.com/pkg/errors v0.8.1
 	github.com/raff/goble v0.0.0-20190909174656-72afc67d6a99
-	github.com/robfig/cron/v3 v3.0.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/sirupsen/logrus v1.4.2

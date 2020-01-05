@@ -57,7 +57,7 @@ github.com/pelletier/go-toml
 github.com/pkg/errors
 # github.com/raff/goble v0.0.0-20190909174656-72afc67d6a99
 github.com/raff/goble/xpc
-# github.com/robfig/cron/v3 v3.0.0
+# github.com/robfig/cron/v3 v3.0.1
 github.com/robfig/cron/v3
 # github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 github.com/shurcooL/httpfs/vfsutil
