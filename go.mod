@@ -8,7 +8,7 @@ require (
 	github.com/etcd-io/bbolt v1.3.3
 	github.com/gopcua/opcua v0.1.6
 	github.com/gorilla/websocket v1.4.1
-	github.com/json-iterator/go v1.1.8
+	github.com/json-iterator/go v1.1.9
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
