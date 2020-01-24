@@ -23,5 +23,5 @@ require (
 	github.com/spf13/viper v1.6.1
 	github.com/stretchr/objx v0.2.0
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
-	golang.org/x/sys v0.0.0-20200107162124-548cf772de50
+	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
 )
