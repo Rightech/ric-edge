@@ -113,6 +113,9 @@ func fillPayload(payload string, data map[string]interface{}) ([]byte, error) {
 	}
 
 	for k, v := range pld.Params {
+		if k == "_cancel" {
+			continue
+		}
 		vv, ok := v.(string)
 		if !ok {
 			return nil, errors.New("prepare: wrong payload params type")
@@ -196,7 +199,7 @@ func (m *Model) walk(path []string, commands map[string]Children,
 		if c.Edge.Read.Command != "" {
 			ac := ActionConfig{
 				ID:        c.ID,
-				Connector: path[len(path)-2],
+				Connector: path[len(path)-1],
 				Type:      c.Edge.Read.Type,
 				Interval:  c.Edge.Read.Interval,
 			}
