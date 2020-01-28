@@ -20,16 +20,40 @@ import (
 	"context"
 	"os"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
 	"github.com/Rightech/ric-edge/internal/app/ble/handler"
+	"github.com/Rightech/ric-edge/internal/app/common"
 	"github.com/Rightech/ric-edge/internal/pkg/ws"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/spf13/viper"
 )
 
+
 func Start(done <-chan os.Signal) error {
-	hand, err := handler.New()
-	if err != nil {
-		return err
+	usePlugin := viper.GetBool("ble.use_plugin")
+
+	var (
+		hand jsonrpc.Caller
+		err  error
+	)
+
+	if !usePlugin {
+		hand, err = handler.New()
+		if err != nil {
+			return err
+		}
+	} else {
+		hand, err = common.LoadPlugin("ble")
+		if err != nil {
+			log.WithError(err).Error("plugin open error. fallback to default")
+			hand, err = handler.New()
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Debug("use plugin")
+		}
 	}
 
 	cli, err := ws.New(viper.GetInt("ws_port"), viper.GetString("version"),
@@ -40,7 +64,7 @@ func Start(done <-chan os.Signal) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go jsonrpc.ServeWithReconnect(ctx, cli, &hand)
+	go jsonrpc.ServeWithReconnect(ctx, cli, hand)
 
 	<-done
 	cancel()

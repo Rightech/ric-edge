@@ -8,3 +8,4 @@ config.toml
 build
 .idea
 ric-edge.iml
+plugins/

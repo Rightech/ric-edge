@@ -17,8 +17,9 @@
 package config
 
 import (
-	"github.com/Rightech/ric-edge/internal/pkg/config"
 	"github.com/spf13/viper"
+
+	"github.com/Rightech/ric-edge/internal/pkg/config"
 )
 
 // Setup viper and load configuration from config.toml and env variables
@@ -27,4 +28,5 @@ func Setup(version ...string) {
 	config.Init(version)
 
 	viper.Set("ble.ws_path", "/ble")
+	viper.SetDefault("ble.use_plugin", false)
 }
