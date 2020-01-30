@@ -18,7 +18,7 @@ package lua
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
 	lua "github.com/yuin/gopher-lua"
@@ -118,7 +118,28 @@ func binaryToNumber(ls *lua.LState) int {
 }
 
 func numberToBinary(ls *lua.LState) int {
-	num := ls.CheckNumber(1)
+	d := ls.Get(1)
+
+	var num lua.LNumber
+
+	switch v := d.(type) {
+	case lua.LNumber:
+		num = v
+	case lua.LString:
+		fl, err := strconv.ParseFloat(v.String(), 64)
+		if err != nil {
+			ls.Push(lua.LNil)
+			ls.Push(lua.LString(err.Error()))
+
+			return 2
+		}
+		num = lua.LNumber(fl)
+	default:
+		ls.Push(lua.LNil)
+		ls.Push(lua.LString("number or string required"))
+
+		return 2
+	}
 
 	order := getBinaryOrder(ls)
 	if order == nil {
@@ -142,7 +163,10 @@ func numberToBinary(ls *lua.LState) int {
 		order.PutUint64(bytes, uint64(num))
 	}
 
-	ls.Push(lua.LString(bytes))
+	ud := ls.NewUserData()
+	ud.Value = bytes
+
+	ls.Push(ud)
 
 	return 1
 }
@@ -154,9 +178,9 @@ func numberToBinary(ls *lua.LState) int {
 func fromJSON(ls *lua.LState) int {
 	str := ls.CheckString(1)
 
-	var value interface{}
+	ud := ls.NewUserData()
 
-	err := jsoniter.ConfigFastest.UnmarshalFromString(str, &value)
+	err := jsoniter.ConfigFastest.UnmarshalFromString(str, &ud.Value)
 	if err != nil {
 		ls.Push(lua.LNil)
 		ls.Push(lua.LString(err.Error()))
@@ -164,42 +188,9 @@ func fromJSON(ls *lua.LState) int {
 		return 2
 	}
 
-	ls.Push(jsonValueCast(ls, value))
+	ls.Push(ud)
 
 	return 1
-}
-
-func jsonValueCast(ls *lua.LState, value interface{}) lua.LValue {
-	switch converted := value.(type) {
-	case bool:
-		return lua.LBool(converted)
-	case float64:
-		return lua.LNumber(converted)
-	case string:
-		return lua.LString(converted)
-	case json.Number:
-		return lua.LString(converted)
-	case []interface{}:
-		arr := ls.CreateTable(len(converted), 0)
-
-		for _, item := range converted {
-			arr.Append(jsonValueCast(ls, item))
-		}
-
-		return arr
-	case map[string]interface{}:
-		tbl := ls.CreateTable(0, len(converted))
-
-		for key, item := range converted {
-			tbl.RawSetH(lua.LString(key), jsonValueCast(ls, item))
-		}
-
-		return tbl
-	case nil:
-		return lua.LNil
-	}
-
-	return lua.LNil
 }
 
 // --------------------------------------------------

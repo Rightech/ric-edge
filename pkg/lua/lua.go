@@ -158,6 +158,8 @@ func toVal(value interface{}) lua.LValue {
 
 func valTo(value lua.LValue) interface{} {
 	switch v := value.(type) {
+	case *lua.LUserData:
+		return v.Value
 	case *lua.LNilType:
 		return nil
 	case lua.LBool:
