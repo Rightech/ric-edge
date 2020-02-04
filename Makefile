@@ -39,7 +39,10 @@ bench:  ##
 
 lint:  ##
 	## lint project by https://github.com/golangci/golangci-lint
-	@golangci-lint run --fix --enable-all cmd/... internal/... pkg/... tools/...
+	@docker run --rm --env GOFLAGS="-mod=vendor" -v $(CURDIR):/app \
+	-w /app golangci/golangci-lint:v1.23 \
+	/bin/sh -c 'golangci-lint run --fix --enable-all; \
+		chown -R $(shell id -u):$(shell id -g) /app'
 
 # "|| true" required for prevent make to output error message when app
 # stopped by Ctrl+C
