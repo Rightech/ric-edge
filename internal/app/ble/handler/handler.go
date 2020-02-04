@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -72,15 +73,56 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 	return
 }
 
+// get type of Eddystone beacon
+func getBeaconType(beaconType int8) string {
+	beacon := ""
+	switch beaconType {
+	case 0x00:
+		beacon = "UID"
+	case 0x10:
+		beacon = "URL"
+	case 0x20:
+		beacon = "TLM"
+	default:
+		beacon = "undefined"
+	}
+
+	return beacon
+}
+
 type dev struct {
-	Addr        string `json:"addr"`
-	RSSI        int    `json:"rssi"`
-	Name        string `json:"name"`
-	Connectable bool   `json:"connectable"`
+	Addr          string `json:"addr"`
+	RSSI          int    `json:"rssi"`
+	Name          string `json:"name"`
+	Connectable   bool   `json:"connectable"`
+	Eddystone     bool   `json:"eddystone"`
+	EddystoneType string `json:"eddystone_type"`
+	EddystoneURL  string `json:"eddystone_url"`
 }
 
 func (s Service) scan(params objx.Map) (interface{}, error) {
+
+	prefixes := []string{"http://www.", "https://www.", "http://", "https://"}
+
+	suffixes := []string{
+		".com/",
+		".org/",
+		".edu/",
+		".net/",
+		".info/",
+		".biz/",
+		".gov/",
+		".com",
+		".org",
+		".edu",
+		".net",
+		".info",
+		".biz",
+		".gov",
+	}
+
 	timeout, err := time.ParseDuration(params.Get("timeout").Str("5s"))
+
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
 	}
@@ -90,24 +132,60 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 	devices := make(map[string]*dev)
 
 	advHandler := func(a ble.Advertisement) {
+		flag := false
+		targetURL := ""
+		beaconKind := ""
+
+		len := len(a.Services())
+		if len > 0 {
+			service := a.Services()[0]
+			if service.String() == "feaa" {
+				for _, serviceData := range a.ServiceData() {
+
+					eddystoneData := serviceData.Data
+					beaconType := eddystoneData[:1]
+					// txPower := eddystoneData[1:2]
+					urlPrefix := eddystoneData[2:3]
+					urlContent := string(eddystoneData[3 : cap(eddystoneData)-1])
+					fmt.Print("\n", urlContent)
+					urlSuffix := eddystoneData[cap(eddystoneData)-1]
+					fmt.Print("\n", urlSuffix)
+
+					prefix := prefixes[urlPrefix[0]]
+					suffix := suffixes[urlSuffix]
+
+					beaconKind = getBeaconType(int8(beaconType[0]))
+					targetURL = prefix + urlContent + suffix
+
+				}
+				flag = true
+			}
+		}
 		v, ok := devices[a.Addr().String()]
 		if ok {
 			v.Name = a.LocalName()
 			v.RSSI = a.RSSI()
 			v.Connectable = a.Connectable()
+			v.Eddystone = flag
+			v.EddystoneType = beaconKind
+			v.EddystoneURL = targetURL
 
 			return
 		}
 
 		devices[a.Addr().String()] = &dev{
-			Addr:        a.Addr().String(),
-			RSSI:        a.RSSI(),
-			Name:        a.LocalName(),
-			Connectable: a.Connectable(),
+			Addr:          a.Addr().String(),
+			RSSI:          a.RSSI(),
+			Name:          a.LocalName(),
+			Connectable:   a.Connectable(),
+			Eddystone:     flag,
+			EddystoneURL:  targetURL,
+			EddystoneType: beaconKind,
 		}
 	}
 
 	err = s.dev.Scan(ctx, false, advHandler)
+
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		return nil, err
 	}
