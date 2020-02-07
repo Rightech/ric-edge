@@ -36,7 +36,7 @@ func newClient(token, version string) client {
 	return client{cli, token, "ric-edge/" + version}
 }
 
-func (c *client) Head(url string) (*http.Response, error) {
+func (c *client) head(url string) (*http.Response, error) {
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return nil, err

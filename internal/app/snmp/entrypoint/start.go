@@ -20,10 +20,11 @@ import (
 	"context"
 	"os"
 
+	"github.com/spf13/viper"
+
 	"github.com/Rightech/ric-edge/internal/app/snmp/handler"
 	"github.com/Rightech/ric-edge/internal/pkg/ws"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/spf13/viper"
 )
 
 func Start(done <-chan os.Signal) error {

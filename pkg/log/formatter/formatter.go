@@ -19,8 +19,9 @@ package formatter
 import (
 	"fmt"
 
-	"github.com/Rightech/ric-edge/pkg/utils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/pkg/utils"
 )
 
 // original source here

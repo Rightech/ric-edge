@@ -20,8 +20,9 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 )
 
 func nfHandler(typ string) ble.NotifyHandler {
@@ -53,8 +54,8 @@ func nfHandler(typ string) ble.NotifyHandler {
 	})
 }
 
-// NewCountChar ...
-func NewCountChar() *ble.Characteristic {
+// newCountChar ...
+func newCountChar() *ble.Characteristic {
 	n := uint32(0)
 
 	c := ble.NewCharacteristic(ble.MustParse("00010000-0002-1000-8000-00805F9B34FB"))

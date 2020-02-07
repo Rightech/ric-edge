@@ -116,6 +116,7 @@ func fillPayload(payload string, data map[string]interface{}) ([]byte, error) {
 		if k == "_cancel" {
 			continue
 		}
+
 		vv, ok := v.(string)
 		if !ok {
 			return nil, errors.New("prepare: wrong payload params type")

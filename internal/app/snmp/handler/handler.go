@@ -23,11 +23,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/Rightech/ric-edge/pkg/log/logger"
 	log "github.com/sirupsen/logrus"
 	g "github.com/soniah/gosnmp"
 	"github.com/stretchr/objx"
+
+	"github.com/Rightech/ric-edge/pkg/jsonrpc"
+	"github.com/Rightech/ric-edge/pkg/log/logger"
 )
 
 type Service struct {

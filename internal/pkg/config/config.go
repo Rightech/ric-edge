@@ -19,9 +19,10 @@ package config
 import (
 	"flag"
 
-	"github.com/Rightech/ric-edge/pkg/log/formatter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/Rightech/ric-edge/pkg/log/formatter"
 )
 
 func Init(version []string) {

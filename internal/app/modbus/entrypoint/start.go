@@ -21,13 +21,14 @@ import (
 	"errors"
 	"os"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
 	"github.com/Rightech/ric-edge/internal/app/modbus/handler"
 	"github.com/Rightech/ric-edge/internal/pkg/ws"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/pkg/log/logger"
 	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func Start(done <-chan os.Signal) error {

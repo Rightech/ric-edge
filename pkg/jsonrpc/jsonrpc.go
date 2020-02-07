@@ -24,10 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Rightech/ric-edge/pkg/nanoid"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
+
+	"github.com/Rightech/ric-edge/pkg/nanoid"
 )
 
 // Caller interface

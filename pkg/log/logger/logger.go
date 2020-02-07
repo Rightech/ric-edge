@@ -19,8 +19,9 @@ package logger
 import (
 	"fmt"
 
-	"github.com/Rightech/ric-edge/pkg/utils"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/pkg/utils"
 )
 
 type Logger struct {

@@ -43,7 +43,7 @@ type nodeDef struct {
 	Max         string             `json:"max"`
 }
 
-func (n nodeDef) Records() []string {
+func (n nodeDef) records() []string {
 	return []string{n.BrowseName, n.DataType, n.NodeID.String(), n.Unit,
 		n.Scale, n.Min, n.Max, strconv.FormatBool(n.Writable), n.Description}
 }

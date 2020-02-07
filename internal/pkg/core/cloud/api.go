@@ -41,7 +41,7 @@ func New(baseURL, token, v string) (Service, error) {
 }
 
 func (s Service) ping() error {
-	resp, err := s.client.Head(s.baseURL.Self())
+	resp, err := s.client.head(s.baseURL.Self())
 	if err != nil {
 		return err
 	}

@@ -17,11 +17,12 @@
 package main
 
 import (
-	"github.com/Rightech/ric-edge/internal/app/core/config"
 	paho "github.com/eclipse/paho.mqtt.golang"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/Rightech/ric-edge/internal/app/core/config"
 )
 
 const code = `const xml = require('fast-xml-parser');

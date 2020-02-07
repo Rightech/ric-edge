@@ -23,10 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Rightech/ric-edge/pkg/log/logger"
-	"github.com/Rightech/ric-edge/pkg/store/mqtt"
 	paho "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/pkg/log/logger"
+	"github.com/Rightech/ric-edge/pkg/store/mqtt"
 )
 
 type Service struct {
@@ -155,7 +156,7 @@ func (s Service) publish(topic string, payload []byte) error {
 	return nil
 }
 
-func (s Service) rpcCallback(cli paho.Client, msg paho.Message) {
+func (s Service) rpcCallback(_ paho.Client, msg paho.Message) {
 	connectorID := strings.Split(msg.Topic(), "/")[1]
 
 	resp := s.rpc.Call(connectorID, msg.Payload())

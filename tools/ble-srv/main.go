@@ -20,15 +20,16 @@ import (
 	"context"
 	"errors"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Rightech/ric-edge/internal/pkg/config"
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	config.Init(nil)
 
-	d, err := NewDevice()
+	d, err := newDevice()
 	if err != nil {
 		log.Fatalf("can't new device : %s", err)
 	}
@@ -38,7 +39,7 @@ func main() {
 	log.Info("Address: ", d.Address().String())
 
 	testSvc := ble.NewService(ble.MustParse("00010000-0001-1000-8000-00805F9B34FB"))
-	testSvc.AddCharacteristic(NewCountChar())
+	testSvc.AddCharacteristic(newCountChar())
 
 	if err := ble.AddService(testSvc); err != nil {
 		log.Fatalf("can't add service: %s", err)

@@ -23,11 +23,12 @@ import (
 	"runtime"
 	"syscall"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
 	"github.com/Rightech/ric-edge/internal/app/core/config"
 	"github.com/Rightech/ric-edge/internal/app/core/entrypoint"
 	"github.com/Rightech/ric-edge/pkg/update"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // set at build time via ldflags

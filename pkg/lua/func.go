@@ -133,7 +133,9 @@ func numberToBinary(ls *lua.LState) int {
 
 			return 2
 		}
+
 		num = lua.LNumber(fl)
+
 	default:
 		ls.Push(lua.LNil)
 		ls.Push(lua.LString("number or string required"))

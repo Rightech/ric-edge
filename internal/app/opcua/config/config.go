@@ -17,8 +17,9 @@
 package config
 
 import (
-	"github.com/Rightech/ric-edge/internal/pkg/config"
 	"github.com/spf13/viper"
+
+	"github.com/Rightech/ric-edge/internal/pkg/config"
 )
 
 // Setup viper and load configuration from config.toml and env variables
