@@ -73,12 +73,12 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 }
 
 type dev struct {
-	Addr          string `json:"addr"`
-	RSSI          int    `json:"rssi"`
-	Name          string `json:"name"`
-	Connectable   bool   `json:"connectable"`
-	BeaconType    string `json:"beaconType"`
-	BeaconContent string `json:"beaconContent"`
+	Addr        string  `json:"addr"`
+	RSSI        int     `json:"rssi"`
+	Name        string  `json:"name"`
+	Connectable bool    `json:"connectable"`
+	IsBeacon    bool    `json:"isBeacon"`
+	Beacon      *beacon `json:"beacon,omitempty"`
 }
 
 func (s Service) scan(params objx.Map) (interface{}, error) {
@@ -94,38 +94,37 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 	devices := make(map[string]*dev)
 
 	advHandler := func(a ble.Advertisement) {
-		// Set empty by default
-		beaconType := ""
-		beaconContent := ""
-
-		len := len(a.Services())
-
-		if len > 0 {
-			if a.Services()[0].String() == eddystoneService {
-				beaconType, beaconContent = getEddystoneParams(a)
-			}
-		}
 
 		v, ok := devices[a.Addr().String()]
 		if ok {
 			v.Name = a.LocalName()
 			v.RSSI = a.RSSI()
 			v.Connectable = a.Connectable()
-			v.BeaconType = beaconType
-			v.BeaconContent = beaconContent
+			// v.isBeacon = false
 
 			return
 		}
 
-		devices[a.Addr().String()] = &dev{
-			Addr:          a.Addr().String(),
-			RSSI:          a.RSSI(),
-			Name:          a.LocalName(),
-			Connectable:   a.Connectable(),
-			BeaconType:    beaconType,
-			BeaconContent: beaconContent,
+		device := &dev{
+			Addr:        a.Addr().String(),
+			RSSI:        a.RSSI(),
+			Name:        a.LocalName(),
+			Connectable: a.Connectable(),
+			IsBeacon:    false,
 		}
 
+		len := len(a.Services())
+
+		if len > 0 {
+			for _, v := range a.Services() {
+				if v.String() == eddystoneService {
+					device.IsBeacon = true
+					device.Beacon = getEddystoneParams(a)
+				}
+			}
+		}
+
+		devices[a.Addr().String()] = device
 	}
 
 	err = s.dev.Scan(ctx, false, advHandler)
@@ -143,6 +142,7 @@ func mapToList(mp map[string]*dev) []dev {
 	for _, v := range mp {
 		lst = append(lst, *v)
 	}
+
 	return lst
 }
 
