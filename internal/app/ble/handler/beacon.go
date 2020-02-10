@@ -32,8 +32,13 @@ const (
 	eddystoneTLM     string = "Eddystone TLM"
 )
 
+type beacon struct {
+	BeaconType    string `json:"beaconType"`
+	BeaconContent string `json:"beaconContent"`
+}
+
 // Get eddystone params
-func getEddystoneParams(packet ble.Advertisement) (string, string) {
+func getEddystoneParams(packet ble.Advertisement) *beacon {
 
 	var beaconKind, beaconContent string
 
@@ -48,7 +53,10 @@ func getEddystoneParams(packet ble.Advertisement) (string, string) {
 		beaconContent = preffix + urlContent + suffix
 	}
 
-	return beaconKind, beaconContent
+	return &beacon{
+		BeaconType:    beaconKind,
+		BeaconContent: beaconContent,
+	}
 }
 
 // get type of Eddystone beacon
