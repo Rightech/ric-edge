@@ -43,7 +43,6 @@ func getEddystoneParams(packet ble.Advertisement) (string, string) {
 		suffix := suffixes[urlSuffix]
 		beaconKind = getEddystoneBeaconKind(int8(beaconType[0]))
 		beaconContent = preffix + urlContent + suffix
-
 	}
 
 	return beaconKind, beaconContent
