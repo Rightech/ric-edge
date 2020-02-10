@@ -23,9 +23,13 @@ var (
 		".biz",
 		".gov",
 	}
-	// Eddystone beacon has such service uuid
-	// which is always exposed
+)
+
+const (
 	eddystoneService string = "feaa"
+	eddystoneUID     string = "Eddystone UID"
+	eddystoneURL     string = "Eddystone URL"
+	eddystoneTLM     string = "Eddystone TLM"
 )
 
 // Get eddystone params
@@ -35,13 +39,12 @@ func getEddystoneParams(packet ble.Advertisement) (string, string) {
 
 	for _, serviceData := range packet.ServiceData() {
 		eddystoneData := serviceData.Data
-		beaconType := eddystoneData[:1]
 		urlPrefix := eddystoneData[2:3]
 		urlContent := string(eddystoneData[3 : len(eddystoneData)-1])
 		urlSuffix := eddystoneData[len(eddystoneData)-1]
 		preffix := preffixes[urlPrefix[0]]
 		suffix := suffixes[urlSuffix]
-		beaconKind = getEddystoneBeaconKind(int8(beaconType[0]))
+		beaconKind = getEddystoneBeaconKind(eddystoneData[0])
 		beaconContent = preffix + urlContent + suffix
 	}
 
@@ -49,18 +52,16 @@ func getEddystoneParams(packet ble.Advertisement) (string, string) {
 }
 
 // get type of Eddystone beacon
-func getEddystoneBeaconKind(beaconType int8) string {
-	beacon := ""
+func getEddystoneBeaconKind(beaconType byte) string {
 	switch beaconType {
 	case 0x00:
-		beacon = "Eddystone UID"
+		return eddystoneUID
 	case 0x10:
-		beacon = "Eddystone URL"
+		return eddystoneURL
 	case 0x20:
-		beacon = "Eddystone TLM"
+		return eddystoneTLM
 	default:
-		beacon = "undefined"
+		return "undefined"
 	}
 
-	return beacon
 }
