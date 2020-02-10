@@ -53,11 +53,11 @@ func getEddystoneBeaconKind(beaconType int8) string {
 	beacon := ""
 	switch beaconType {
 	case 0x00:
-		beacon = "UID"
+		beacon = "Eddystone UID"
 	case 0x10:
-		beacon = "URL"
+		beacon = "Eddystone URL"
 	case 0x20:
-		beacon = "TLM"
+		beacon = "Eddystone TLM"
 	default:
 		beacon = "undefined"
 	}
