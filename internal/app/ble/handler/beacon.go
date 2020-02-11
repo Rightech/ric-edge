@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	preffixes = []string{"http://www.", "https://www.", "http://", "https://"}
+	preffixes = []string{"http://www.", "https://www.", "http://", "https://"} // nolint: gochecknoglobals
 
-	suffixes = []string{
+	suffixes = []string{ // nolint: gochecknoglobals
 		".com/",
 		".org/",
 		".edu/",
