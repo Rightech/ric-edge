@@ -21,9 +21,10 @@ import (
 	"encoding/json"
 	"math"
 
+	"github.com/stretchr/objx"
+
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/third_party/goburrow/modbus"
-	"github.com/stretchr/objx"
 )
 
 type PackagerFn func(byte) modbus.Packager
@@ -306,7 +307,7 @@ func buildProcessCoilsArray(k string, bytes []byte) func(int64) error {
 		}
 
 		if item == 1 {
-			bytes[i] |= (1 << pos)
+			bytes[i] |= 1 << pos
 		}
 
 		pos++
@@ -425,6 +426,7 @@ func buildProcessRegistersArray(k string, bytes []byte) func(int64) error {
 
 		binary.BigEndian.PutUint16(bytes[i:i+2], uint16(item))
 		i += 2
+
 		return nil
 	}
 }

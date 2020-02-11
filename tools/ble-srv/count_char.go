@@ -18,10 +18,12 @@ package main
 
 import (
 	"encoding/binary"
+	"math"
 	"time"
 
-	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 )
 
 func nfHandler(typ string) ble.NotifyHandler {
@@ -53,16 +55,16 @@ func nfHandler(typ string) ble.NotifyHandler {
 	})
 }
 
-// NewCountChar ...
-func NewCountChar() *ble.Characteristic {
-	n := uint32(0)
+// newCountChar ...
+func newCountChar() *ble.Characteristic {
+	var n float64
 
 	c := ble.NewCharacteristic(ble.MustParse("00010000-0002-1000-8000-00805F9B34FB"))
 	c.HandleRead(ble.ReadHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
-		log.Printf("count: Read %d", n)
+		log.Printf("count: Read %f", n)
 
-		bs := make([]byte, 4)
-		binary.LittleEndian.PutUint32(bs, n)
+		bs := make([]byte, 8)
+		binary.LittleEndian.PutUint64(bs, math.Float64bits(n))
 
 		_, err := rsp.Write(bs)
 		if err != nil {
@@ -75,9 +77,9 @@ func NewCountChar() *ble.Characteristic {
 	}))
 
 	c.HandleWrite(ble.WriteHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
-		val := binary.LittleEndian.Uint32(req.Data())
+		val := math.Float64frombits(binary.LittleEndian.Uint64(req.Data()))
 
-		log.Printf("count: Write %d", val)
+		log.Printf("count: Write %f", val)
 
 		n = val
 

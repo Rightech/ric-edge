@@ -21,8 +21,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/Rightech/ric-edge/cmd/core/data"
 	_ "github.com/shurcooL/vfsgen" // required to go mod find this
+
+	"github.com/Rightech/ric-edge/cmd/core/data"
 )
 
 func printConfig(name string) {

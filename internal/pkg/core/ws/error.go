@@ -21,8 +21,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	jsoniter "github.com/json-iterator/go"
+
+	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 )
 
 // build and write error response from error and status code

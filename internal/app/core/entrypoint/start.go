@@ -17,9 +17,11 @@
 package entrypoint
 
 import (
-	"context"
 	"os"
 	"time"
+
+	"github.com/etcd-io/bbolt"
+	"github.com/spf13/viper"
 
 	"github.com/Rightech/ric-edge/internal/app/core/rpc"
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
@@ -27,8 +29,6 @@ import (
 	"github.com/Rightech/ric-edge/internal/pkg/core/mqtt"
 	"github.com/Rightech/ric-edge/internal/pkg/core/ws"
 	"github.com/Rightech/ric-edge/pkg/lua"
-	"github.com/etcd-io/bbolt"
-	"github.com/spf13/viper"
 )
 
 func Start(done <-chan os.Signal) error { // nolint: funlen
@@ -50,7 +50,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		return err
 	}
 
-	// this channel needs to communicate between jsonrpc transport and rpc service
+	// this channel needs to communicate between jsonrpc transport and rpcCli service
 	// in this channel transport send jsonrpc requests
 	requestsCh := make(chan []byte)
 
@@ -60,10 +60,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	errCh := sock.Start(ctx)
+	errCh := sock.Start()
 
 	stateCh := make(chan []byte)
 
@@ -73,7 +70,7 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 	// before continue
 	time.Sleep(2 * time.Second)
 
-	rpc, err := rpc.New(
+	rpcCli, err := rpc.New(
 		viper.GetString("core.id"),
 		viper.GetDuration("core.rpc_timeout"),
 		luaMachine, db, viper.GetBool("core.db.clean_state"),
@@ -82,19 +79,19 @@ func Start(done <-chan os.Signal) error { // nolint: funlen
 		return err
 	}
 
-	mqtt, err := mqtt.New(
+	mqttCli, err := mqtt.New(
 		viper.GetString("core.mqtt.url"),
-		rpc.GetEdgeID(),
+		rpcCli.GetEdgeID(),
 		viper.GetString("core.mqtt.cert_file"),
 		viper.GetString("core.mqtt.key_path"),
-		db, rpc, stateCh,
+		db, rpcCli, stateCh,
 	)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		mqtt.Close()
+		mqttCli.Close()
 		sock.Close()
 	}()
 

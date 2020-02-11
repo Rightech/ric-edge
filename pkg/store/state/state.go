@@ -17,7 +17,6 @@
 package state
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/etcd-io/bbolt"
@@ -32,10 +31,6 @@ type DB interface {
 
 const (
 	bucketName = "state"
-)
-
-var (
-	ErrNotFound = errors.New("state: not found")
 )
 
 type Service struct {

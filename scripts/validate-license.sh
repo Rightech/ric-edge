@@ -28,6 +28,7 @@ find_files() {
       -o -wholename './pkg/proto' \
       -o -wholename '*testdata*' \
       -o -wholename './third_party' \
+      -o -wholename './plugins' \
       -o -wholename '*_generated.go' \
     \) -prune \
   \) \
@@ -43,10 +44,19 @@ if (( ${#failed_license_header[@]} > 0 )); then
   exit 1
 fi
 
-failed_copyright_header=($(grep -L 'Copyright 2019 Rightech IoT' $(find_files))) || :
+failed_copyright_header=($(grep -L 'Copyright' $(find_files))) || :
 if (( ${#failed_copyright_header[@]} > 0 )); then
   echo "Some source files are missing the copyright header."
   for f in "${failed_copyright_header[@]}"; do
+    echo "  $f"
+  done
+  exit 1
+fi
+
+failed_company_name=($(grep -L 'Rightech IoT' $(find_files))) || :
+if (( ${#failed_company_name[@]} > 0 )); then
+  echo "Some source files are missing the company name."
+  for f in "${failed_company_name[@]}"; do
     echo "  $f"
   done
   exit 1

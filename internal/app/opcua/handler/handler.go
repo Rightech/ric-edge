@@ -22,10 +22,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
 	"github.com/stretchr/objx"
+
+	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 )
 
 type Service struct {

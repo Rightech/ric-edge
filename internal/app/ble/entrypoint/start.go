@@ -29,7 +29,6 @@ import (
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 )
 
-
 func Start(done <-chan os.Signal) error {
 	usePlugin := viper.GetBool("ble.use_plugin")
 

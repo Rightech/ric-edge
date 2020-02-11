@@ -24,13 +24,14 @@ import (
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/objx"
+
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
 	"github.com/Rightech/ric-edge/pkg/nanoid"
 	"github.com/Rightech/ric-edge/pkg/store/state"
-	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/objx"
 )
 
 type stater interface {
@@ -147,7 +148,7 @@ func (s Service) sendState(parent string, value interface{}) {
 	s.stateCh <- st
 }
 
-func (s Service) requestsListener() { //nolint: funlen
+func (s Service) requestsListener() { // nolint: funlen
 	for msg := range s.requestsCh {
 		var request objx.Map
 
@@ -369,7 +370,7 @@ func (s Service) Call(name string, payload []byte) []byte {
 	}
 }
 
-func (s Service) prepareResponse(req objx.Map, resp []byte) []byte { //nolint: funlen
+func (s Service) prepareResponse(req objx.Map, resp []byte) []byte { // nolint: funlen
 	parent := req.Get("params._parent").Str()
 	if parent == "" {
 		return resp

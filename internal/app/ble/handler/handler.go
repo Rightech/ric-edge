@@ -23,10 +23,11 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/objx"
+
+	"github.com/Rightech/ric-edge/pkg/jsonrpc"
+	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 )
 
 func init() { // nolint: gochecknoinits

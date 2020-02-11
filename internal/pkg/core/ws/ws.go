@@ -27,11 +27,12 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/Rightech/ric-edge/pkg/jsonrpc"
-	"github.com/Rightech/ric-edge/pkg/nanoid"
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Rightech/ric-edge/pkg/jsonrpc"
+	"github.com/Rightech/ric-edge/pkg/nanoid"
 )
 
 const (
@@ -150,14 +151,16 @@ func New(port int, version string, requestsCh chan<- []byte) (*Service, error) {
 }
 
 // Start WebSocket server
-func (s *Service) Start(ctx context.Context) <-chan error {
+func (s *Service) Start() <-chan error {
 	errCh := make(chan error, 1)
 
 	go func() {
 		log.Info("ws ready")
+
 		err := s.srv.ListenAndServe() // blocks current goroutine
 		if err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("ws:Start:%w", err)
+
 			return
 		}
 
