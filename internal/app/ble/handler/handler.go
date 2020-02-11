@@ -100,7 +100,6 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 			v.Name = a.LocalName()
 			v.RSSI = a.RSSI()
 			v.Connectable = a.Connectable()
-			// v.isBeacon = false
 
 			return
 		}
@@ -110,7 +109,6 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 			RSSI:        a.RSSI(),
 			Name:        a.LocalName(),
 			Connectable: a.Connectable(),
-			IsBeacon:    false,
 		}
 
 		len := len(a.Services())
@@ -120,6 +118,8 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 				if v.String() == eddystoneService {
 					device.IsBeacon = true
 					device.Beacon = getEddystoneParams(a)
+
+					break
 				}
 			}
 		}
