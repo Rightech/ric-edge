@@ -49,25 +49,24 @@ type beacon struct {
 // Get eddystone params
 func getEddystoneParams(packet ble.Advertisement) *beacon {
 
+	if len(packet.ServiceData()) == 0 {
+		return nil
+	}
 	var beaconKind, beaconContent string
 
 	if len(packet.ServiceData()) > 1 {
-		panic("Service data length is " + string(len(packet.ServiceData())))
+		panic(fmt.Sprintf("Service data length is %v", len(packet.ServiceData())))
 	}
 
-	for _, serviceData := range packet.ServiceData() {
+	serviceData := packet.ServiceData()[0].Data
+	typ := EddystoneBeacon(serviceData[0])
 
-		eddystoneData := serviceData.Data
-		typ := EddystoneBeacon(eddystoneData[0])
-
-		switch typ {
-		case EddystoneURL:
-			beaconContent = getEddystoneURLParams(eddystoneData)
-			beaconKind = "Eddystone URL"
-		default:
-			panic(fmt.Sprintf("Unsupported format: %x", typ))
-		}
-
+	switch typ {
+	case EddystoneURL:
+		beaconContent = getEddystoneURLParams(serviceData)
+		beaconKind = "Eddystone URL"
+	default:
+		panic(fmt.Sprintf("Unsupported format: %x", typ))
 	}
 
 	return &beacon{
