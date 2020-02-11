@@ -64,11 +64,12 @@ type beacon struct {
 
 // Get eddystone params
 func getEddystoneParams(packet ble.Advertisement) *beacon {
-
 	if len(packet.ServiceData()) == 0 {
 		return nil
 	}
-	var beaconKind, beaconContent string
+	var (
+		beaconKind, beaconContent string
+	)
 
 	if len(packet.ServiceData()) > 1 {
 		panic(fmt.Sprintf("Service data length is %v", len(packet.ServiceData())))
