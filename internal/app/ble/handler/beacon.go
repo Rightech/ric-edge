@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/Rightech/ric-edge/third_party/go-ble/ble"
 )
 
@@ -27,9 +29,16 @@ var (
 
 const (
 	eddystoneService string = "feaa"
-	eddystoneUID     string = "Eddystone UID"
-	eddystoneURL     string = "Eddystone URL"
-	eddystoneTLM     string = "Eddystone TLM"
+)
+
+// EddystoneBeacon is type for common eddystone beacons
+type EddystoneBeacon byte
+
+// uses for different parsing funcs
+const (
+	EddystoneUID EddystoneBeacon = 0x00
+	EddystoneURL EddystoneBeacon = 0x10
+	EddystoneTLM EddystoneBeacon = 0x20
 )
 
 type beacon struct {
@@ -42,15 +51,23 @@ func getEddystoneParams(packet ble.Advertisement) *beacon {
 
 	var beaconKind, beaconContent string
 
+	if len(packet.ServiceData()) > 1 {
+		panic("Service data length is " + string(len(packet.ServiceData())))
+	}
+
 	for _, serviceData := range packet.ServiceData() {
+
 		eddystoneData := serviceData.Data
-		urlPrefix := eddystoneData[2:3]
-		urlContent := string(eddystoneData[3 : len(eddystoneData)-1])
-		urlSuffix := eddystoneData[len(eddystoneData)-1]
-		preffix := preffixes[urlPrefix[0]]
-		suffix := suffixes[urlSuffix]
-		beaconKind = getEddystoneBeaconKind(eddystoneData[0])
-		beaconContent = preffix + urlContent + suffix
+		typ := EddystoneBeacon(eddystoneData[0])
+
+		switch typ {
+		case EddystoneURL:
+			beaconContent = getEddystoneURLParams(eddystoneData)
+			beaconKind = "Eddystone URL"
+		default:
+			panic(fmt.Sprintf("Unsupported format: %x", typ))
+		}
+
 	}
 
 	return &beacon{
@@ -59,17 +76,13 @@ func getEddystoneParams(packet ble.Advertisement) *beacon {
 	}
 }
 
-// get type of Eddystone beacon
-func getEddystoneBeaconKind(beaconType byte) string {
-	switch beaconType {
-	case 0x00:
-		return eddystoneUID
-	case 0x10:
-		return eddystoneURL
-	case 0x20:
-		return eddystoneTLM
-	default:
-		return "undefined"
-	}
+func getEddystoneURLParams(packet []byte) string {
+	urlPrefix := packet[2:3]
+	urlContent := string(packet[3 : len(packet)-1])
+	urlSuffix := packet[len(packet)-1]
+	preffix := preffixes[urlPrefix[0]]
+	suffix := suffixes[urlSuffix]
+	beaconContent := preffix + urlContent + suffix
 
+	return beaconContent
 }
