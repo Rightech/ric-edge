@@ -61,7 +61,7 @@ func newCountChar() *ble.Characteristic {
 
 	c := ble.NewCharacteristic(ble.MustParse("00010000-0002-1000-8000-00805F9B34FB"))
 	c.HandleRead(ble.ReadHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
-		log.Printf("count: Read %d", n)
+		log.Printf("count: Read %f", n)
 
 		bs := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bs, math.Float64bits(n))
@@ -79,7 +79,7 @@ func newCountChar() *ble.Characteristic {
 	c.HandleWrite(ble.WriteHandlerFunc(func(req ble.Request, rsp ble.ResponseWriter) {
 		val := math.Float64frombits(binary.LittleEndian.Uint64(req.Data()))
 
-		log.Printf("count: Write %d", val)
+		log.Printf("count: Write %f", val)
 
 		n = val
 
