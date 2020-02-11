@@ -74,14 +74,18 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 }
 
 type dev struct {
-	Addr        string `json:"addr"`
-	RSSI        int    `json:"rssi"`
-	Name        string `json:"name"`
-	Connectable bool   `json:"connectable"`
+	Addr        string  `json:"addr"`
+	RSSI        int     `json:"rssi"`
+	Name        string  `json:"name"`
+	Connectable bool    `json:"connectable"`
+	IsBeacon    bool    `json:"isBeacon"`
+	Beacon      *beacon `json:"beacon,omitempty"`
 }
 
 func (s Service) scan(params objx.Map) (interface{}, error) {
+
 	timeout, err := time.ParseDuration(params.Get("timeout").Str("5s"))
+
 	if err != nil {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", err.Error())
 	}
@@ -91,6 +95,7 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 	devices := make(map[string]*dev)
 
 	advHandler := func(a ble.Advertisement) {
+
 		v, ok := devices[a.Addr().String()]
 		if ok {
 			v.Name = a.LocalName()
@@ -100,15 +105,31 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 			return
 		}
 
-		devices[a.Addr().String()] = &dev{
+		device := &dev{
 			Addr:        a.Addr().String(),
 			RSSI:        a.RSSI(),
 			Name:        a.LocalName(),
 			Connectable: a.Connectable(),
 		}
+
+		len := len(a.Services())
+
+		if len > 0 {
+			for _, v := range a.Services() {
+				if v.String() == eddystoneService {
+					device.IsBeacon = true
+					device.Beacon = getEddystoneParams(a)
+
+					break
+				}
+			}
+		}
+
+		devices[a.Addr().String()] = device
 	}
 
 	err = s.dev.Scan(ctx, false, advHandler)
+
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		return nil, err
 	}
