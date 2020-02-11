@@ -69,8 +69,8 @@ func getEddystoneParams(packet ble.Advertisement) *beacon {
 	}
 
 	var (
-		beaconKind    = ""
-		beaconContent = ""
+		beaconKind    string
+		beaconContent string
 	)
 
 	if len(packet.ServiceData()) > 1 {
