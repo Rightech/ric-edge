@@ -1,7 +1,7 @@
 # ric-edge
 
 [![Build Status](https://github.com/Rightech/ric-edge/workflows/Build%20and%20release/badge.svg)](https://github.com/Rightech/ric-edge/actions?query=workflow%3A%22Build+and+release%22)
-[![GitHub release](https://img.shields.io/github/v/release/Rightech/ric-edge?include_prereleases)](https://github.com/Rightech/ric-edge/releases/tag/v0.6.15)
+[![GitHub release](https://img.shields.io/github/v/release/Rightech/ric-edge?include_prereleases)](https://github.com/Rightech/ric-edge/releases/tag/v0.7.0)
 
 ## config
 
