@@ -18,6 +18,7 @@ package lua
 
 import (
 	"encoding/binary"
+	"math"
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
@@ -57,7 +58,7 @@ func getBinaryOrder(ls *lua.LState) binary.ByteOrder {
 }
 
 func getSize(ls *lua.LState) int {
-	size := 32
+	size := 64
 	sizeV := ls.Get(3)
 
 	if sizeV != lua.LNil {
@@ -71,9 +72,9 @@ func getSize(ls *lua.LState) int {
 	}
 
 	switch size {
-	case 16, 32, 64:
+	case 32, 64:
 	default:
-		ls.RaiseError("16, 32 or 64 size allowed, but given: %d", size)
+		ls.RaiseError("32 or 64 size allowed, but given: %d", size)
 		return 0
 	}
 
@@ -105,11 +106,9 @@ func binaryToNumber(ls *lua.LState) int {
 
 	switch size {
 	case 32:
-		num = lua.LNumber(order.Uint32(bytes))
-	case 16:
-		num = lua.LNumber(order.Uint16(bytes))
+		num = lua.LNumber(math.Float32frombits(order.Uint32(bytes)))
 	default:
-		num = lua.LNumber(order.Uint64(bytes))
+		num = lua.LNumber(math.Float64frombits(order.Uint64(bytes)))
 	}
 
 	ls.Push(num)
@@ -158,11 +157,9 @@ func numberToBinary(ls *lua.LState) int {
 
 	switch size {
 	case 32:
-		order.PutUint32(bytes, uint32(num))
-	case 16:
-		order.PutUint16(bytes, uint16(num))
+		order.PutUint32(bytes, math.Float32bits(float32(num)))
 	default:
-		order.PutUint64(bytes, uint64(num))
+		order.PutUint64(bytes, math.Float64bits(float64(num)))
 	}
 
 	ud := ls.NewUserData()
