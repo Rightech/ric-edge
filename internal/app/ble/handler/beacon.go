@@ -67,10 +67,9 @@ func getEddystoneParams(packet ble.Advertisement) *beacon {
 	if len(packet.ServiceData()) == 0 {
 		return nil
 	}
-	var (
-		beaconKind    = ""
-		beaconContent = ""
-	)
+
+	var beaconKind = ""
+	var beaconContent = ""
 
 	if len(packet.ServiceData()) > 1 {
 		panic(fmt.Sprintf("Service data length is %v", len(packet.ServiceData())))
