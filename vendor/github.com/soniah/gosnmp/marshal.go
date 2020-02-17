@@ -226,7 +226,6 @@ func (x *GoSNMP) sendOneRequest(packetOut *SnmpPacket,
 			cursor, err = x.unmarshalHeader(resp, result)
 			if err != nil {
 				x.logPrintf("ERROR on unmarshall header: %s", err)
-				err = fmt.Errorf("Unable to decode packet: %s", err.Error())
 				continue
 			}
 
@@ -236,18 +235,16 @@ func (x *GoSNMP) sendOneRequest(packetOut *SnmpPacket,
 					x.logPrintf("ERROR on Test Authentication on v3: %s", err)
 					break
 				}
-				resp, cursor, err = x.decryptPacket(resp, cursor, result)
+				resp, cursor, _ = x.decryptPacket(resp, cursor, result)
 			}
 
 			err = x.unmarshalPayload(resp, cursor, result)
 			if err != nil {
 				x.logPrintf("ERROR on UnmarshalPayload on v3: %s", err)
-				err = fmt.Errorf("Unable to decode packet: %s", err.Error())
 				continue
 			}
-			if result == nil || len(result.Variables) < 1 {
+			if len(result.Variables) < 1 {
 				x.logPrintf("ERROR on UnmarshalPayload on v3: %s", err)
-				err = fmt.Errorf("Unable to decode packet: nil")
 				continue
 			}
 
@@ -274,7 +271,6 @@ func (x *GoSNMP) sendOneRequest(packetOut *SnmpPacket,
 			}
 			if !validID {
 				x.logPrint("ERROR  out of order")
-				err = fmt.Errorf("Out of order response")
 				continue
 			}
 
