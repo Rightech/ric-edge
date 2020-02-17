@@ -5,5 +5,11 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
-  "schedule": "on sunday"
+  "schedule": "on sunday",
+  "packageRules": [
+    {
+      "updateTypes": ["patch", "digest"],
+      "automerge": true
+    }
+  ]
 }
