@@ -1,4 +1,4 @@
-// Copyright 2018-2019 opcua authors. All rights reserved.
+// Copyright 2018-2020 opcua authors. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -277,10 +277,15 @@ func (c *Client) CreateSession(cfg *uasc.SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
+	name := cfg.SessionName
+	if name == "" {
+		name = fmt.Sprintf("gopcua-%d", time.Now().UnixNano())
+	}
+
 	req := &ua.CreateSessionRequest{
 		ClientDescription:       cfg.ClientDescription,
 		EndpointURL:             c.endpointURL,
-		SessionName:             fmt.Sprintf("gopcua-%d", time.Now().UnixNano()),
+		SessionName:             name,
 		ClientNonce:             nonce,
 		ClientCertificate:       c.cfg.Certificate,
 		RequestedSessionTimeout: float64(cfg.SessionTimeout / time.Millisecond),
@@ -578,7 +583,7 @@ func (c *Client) UnregisterNodes(req *ua.UnregisterNodesRequest) (*ua.Unregister
 // Subscribe creates a Subscription with given parameters. Parameters that have not been set
 // (have zero values) are overwritten with default values.
 // See opcua.DefaultSubscription* constants
-func (c *Client) Subscribe(params *SubscriptionParameters) (*Subscription, error) {
+func (c *Client) Subscribe(params *SubscriptionParameters, notifyCh chan *PublishNotificationData) (*Subscription, error) {
 	if params == nil {
 		params = &SubscriptionParameters{}
 	}
@@ -608,9 +613,10 @@ func (c *Client) Subscribe(params *SubscriptionParameters) (*Subscription, error
 		time.Duration(res.RevisedPublishingInterval) * time.Millisecond,
 		res.RevisedLifetimeCount,
 		res.RevisedMaxKeepAliveCount,
-		params.Notifs,
+		notifyCh,
 		c,
 	}
+
 	c.subMux.Lock()
 	if sub.SubscriptionID == 0 || c.subscriptions[sub.SubscriptionID] != nil {
 		// this should not happen and is usually indicative of a server bug

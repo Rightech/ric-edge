@@ -1,4 +1,4 @@
-// Copyright 2018-2019 opcua authors. All rights reserved.
+// Copyright 2018-2020 opcua authors. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -141,6 +141,13 @@ func SecurityModeString(s string) Option {
 func SecurityPolicy(s string) Option {
 	return func(c *uasc.Config, sc *uasc.SessionConfig) {
 		c.SecurityPolicyURI = ua.FormatSecurityPolicyURI(s)
+	}
+}
+
+// SessionName sets the name in the session configuration.
+func SessionName(s string) Option {
+	return func(c *uasc.Config, sc *uasc.SessionConfig) {
+		sc.SessionName = s
 	}
 }
 
