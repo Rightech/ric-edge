@@ -19,7 +19,7 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/sirupsen/logrus v1.4.2
-	github.com/soniah/gosnmp v1.23.0
+	github.com/soniah/gosnmp v1.24.0
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.2.0
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb

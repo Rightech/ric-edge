@@ -1,4 +1,4 @@
-// Copyright 2012-2018 The GoSNMP Authors. All rights reserved.  Use of this
+// Copyright 2012-2020 The GoSNMP Authors. All rights reserved.  Use of this
 // source code is governed by a BSD-style license that can be found in the
 // LICENSE file.
 
@@ -448,7 +448,7 @@ func (sp *UsmSecurityParameters) authenticate(packet []byte) error {
 
 	authParamStart, err := usmFindAuthParamStart(packet)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	copy(packet[authParamStart:authParamStart+12], h2.Sum(nil)[:12])
@@ -574,6 +574,9 @@ func (sp *UsmSecurityParameters) encryptPacket(scopedPdu []byte) ([]byte, error)
 func (sp *UsmSecurityParameters) decryptPacket(packet []byte, cursor int) ([]byte, error) {
 	_, cursorTmp := parseLength(packet[cursor:])
 	cursorTmp += cursor
+	if cursorTmp > len(packet) {
+		return nil, fmt.Errorf("error decrypting ScopedPDU: truncated packet")
+	}
 
 	switch sp.PrivacyProtocol {
 	case AES:
@@ -641,10 +644,20 @@ func (sp *UsmSecurityParameters) marshal(flags SnmpV3MsgFlags) ([]byte, error) {
 
 	// msgAuthenticationParameters
 	if flags&AuthNoPriv > 0 {
-		buf.Write([]byte{byte(OctetString), 12,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0})
+		if len(sp.AuthenticationParameters) == 0 {
+			buf.Write([]byte{byte(OctetString), 12,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0})
+		} else {
+			authlen, err := marshalLength(len(sp.AuthenticationParameters))
+			if err != nil {
+				return nil, err
+			}
+			buf.Write([]byte{byte(OctetString)})
+			buf.Write(authlen)
+			buf.Write([]byte(sp.AuthenticationParameters))
+		}
 	} else {
 		buf.Write([]byte{byte(OctetString), 0})
 	}
@@ -681,6 +694,9 @@ func (sp *UsmSecurityParameters) unmarshal(flags SnmpV3MsgFlags, packet []byte, 
 	}
 	_, cursorTmp := parseLength(packet[cursor:])
 	cursor += cursorTmp
+	if cursorTmp > len(packet) {
+		return 0, fmt.Errorf("error parsing SNMPV3 User Security Model parameters: truncated packet")
+	}
 
 	rawMsgAuthoritativeEngineID, count, err := parseRawField(packet[cursor:], "msgAuthoritativeEngineID")
 	if err != nil {
