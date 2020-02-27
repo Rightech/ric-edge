@@ -155,7 +155,7 @@ func (m *Model) afterWalk(commands map[string]Children, acmd map[string]command)
 			return
 		}
 
-		acmd[v.ID].Params["parent.id"] = v.ID
+		acmd[v.ID].Params["node.parent.id"] = v.ID
 
 		v.Payload, err = fillPayload(payload, acmd[v.ID].Params)
 		if err != nil {
