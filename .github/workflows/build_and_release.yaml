@@ -22,6 +22,11 @@ jobs:
         run: |
           cd build
           sha256sum * > sha256sum.txt
+      - name: Save binaries
+        uses: actions/upload-artifact@v1
+        with:
+          name: binaries
+          path: build/*
       - name: Create Github release
         uses: meeDamian/github-release@1.0
         with:
