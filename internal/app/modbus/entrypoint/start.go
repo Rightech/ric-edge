@@ -66,7 +66,8 @@ func Start(done <-chan os.Signal) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go jsonrpc.ServeWithReconnect(ctx, cli, handler.New(transport, packagerFn))
+	go jsonrpc.ServeWithReconnect(ctx, cli, handler.New(transport, packagerFn),
+		jsonrpc.CatchPanic(viper.GetBool("catch_panic")))
 
 	<-done
 	cancel()

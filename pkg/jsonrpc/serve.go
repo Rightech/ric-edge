@@ -28,8 +28,8 @@ type TransportWithConnect interface {
 	Connect() error
 }
 
-func ServeWithReconnect(ctx context.Context, cli TransportWithConnect, caller Caller) {
-	srv := New(cli, caller)
+func ServeWithReconnect(ctx context.Context, cli TransportWithConnect, caller Caller, o ...Option) {
+	srv := New(cli, caller, o...)
 
 	if v, ok := caller.(interface {
 		InjectRPC(RPC)

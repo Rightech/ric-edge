@@ -44,6 +44,7 @@ func Init(version []string) {
 	viper.SetDefault("ws_port", 9000)
 	viper.SetDefault("check_updates", true)
 	viper.SetDefault("auto_download_updates", false)
+	viper.SetDefault("catch_panic", true)
 
 	setupLogger()
 

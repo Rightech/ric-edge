@@ -61,14 +61,29 @@ type Transport interface {
 }
 
 type Service struct {
-	c Caller
+	c          Caller
+	catchPanic bool
 	// this lock required because only one encoder can exists at point of time
 	mx *sync.Mutex
 	tr Transport
 }
 
-func New(tr Transport, c Caller) Service {
-	return Service{c, new(sync.Mutex), tr}
+type Option func(*Service)
+
+func CatchPanic(v bool) Option {
+	return func(s *Service) {
+		s.catchPanic = v
+	}
+}
+
+func New(tr Transport, c Caller, o ...Option) Service {
+	s := &Service{c, true, new(sync.Mutex), tr}
+
+	for _, f := range o {
+		f(s)
+	}
+
+	return *s
 }
 
 // return decoder with UseNumber enabled
@@ -220,13 +235,15 @@ func (n NotificationService) Send(value interface{}) {
 
 func (s Service) call(req Request) (res interface{}, err error) {
 	defer func() {
-		if r := recover(); r != nil {
-			res = nil
-			err = ErrServer.SetData(map[string]interface{}{
-				"msg":   r,
-				"panic": true,
-				"stack": string(debug.Stack()),
-			}).SetCode(-32099)
+		if s.catchPanic {
+			if r := recover(); r != nil {
+				res = nil
+				err = ErrServer.SetData(map[string]interface{}{
+					"msg":   r,
+					"panic": true,
+					"stack": string(debug.Stack()),
+				}).SetCode(-32099)
+			}
 		}
 	}()
 
