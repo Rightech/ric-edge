@@ -16,7 +16,7 @@ github.com/gopcua/opcua/ua
 github.com/gopcua/opcua/uacp
 github.com/gopcua/opcua/uapolicy
 github.com/gopcua/opcua/uasc
-# github.com/gorilla/websocket v1.4.1
+# github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
