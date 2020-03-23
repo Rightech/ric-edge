@@ -19,9 +19,9 @@ package state
 import (
 	"sync"
 
-	"github.com/etcd-io/bbolt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/objx"
+	"go.etcd.io/bbolt"
 )
 
 type DB interface {

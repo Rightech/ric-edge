@@ -3,8 +3,6 @@ github.com/Masterminds/semver/v3
 # github.com/eclipse/paho.mqtt.golang v1.2.0
 github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
-# github.com/etcd-io/bbolt v1.3.3
-github.com/etcd-io/bbolt
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gopcua/opcua v0.1.10
@@ -85,6 +83,8 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
+# go.etcd.io/bbolt v1.3.2
+go.etcd.io/bbolt
 # golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy

@@ -20,8 +20,8 @@ import (
 	"bytes"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
-	"github.com/etcd-io/bbolt"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/bbolt"
 )
 
 type DB interface {

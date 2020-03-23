@@ -20,8 +20,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/etcd-io/bbolt"
 	"github.com/spf13/viper"
+	"go.etcd.io/bbolt"
 
 	"github.com/Rightech/ric-edge/internal/app/core/rpc"
 	"github.com/Rightech/ric-edge/internal/pkg/core/cloud"

@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/eclipse/paho.mqtt.golang v1.2.0
-	github.com/etcd-io/bbolt v1.3.4
 	github.com/gopcua/opcua v0.1.10
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.9
@@ -23,5 +22,6 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.2.0
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
+	go.etcd.io/bbolt v1.3.2
 	golang.org/x/sys v0.0.0-20200321134203-328b4cd54aae
 )
