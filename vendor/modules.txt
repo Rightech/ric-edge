@@ -51,7 +51,7 @@ github.com/modern-go/reflect2
 github.com/pelletier/go-toml
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
-# github.com/raff/goble v0.0.0-20190909174656-72afc67d6a99
+# github.com/raff/goble v0.0.0-20200327175727-d63360dcfd80
 github.com/raff/goble/xpc
 # github.com/robfig/cron/v3 v3.0.1
 github.com/robfig/cron/v3
@@ -59,7 +59,7 @@ github.com/robfig/cron/v3
 github.com/shurcooL/httpfs/vfsutil
 # github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 github.com/shurcooL/vfsgen
-# github.com/sirupsen/logrus v1.4.2
+# github.com/sirupsen/logrus v1.5.0
 github.com/sirupsen/logrus
 # github.com/soniah/gosnmp v1.24.0
 github.com/soniah/gosnmp
@@ -89,7 +89,7 @@ go.etcd.io/bbolt
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20200321134203-328b4cd54aae
+# golang.org/x/sys v0.0.0-20200331124033-c3d80250170d
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/transform
