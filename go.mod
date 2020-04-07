@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/eclipse/paho.mqtt.golang v1.2.0
-	github.com/gopcua/opcua v0.1.10
+	github.com/gopcua/opcua v0.1.11
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.9
 	github.com/mattn/go-colorable v0.1.4 // indirect

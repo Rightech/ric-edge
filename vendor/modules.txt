@@ -5,7 +5,7 @@ github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
-# github.com/gopcua/opcua v0.1.10
+# github.com/gopcua/opcua v0.1.11
 github.com/gopcua/opcua
 github.com/gopcua/opcua/debug
 github.com/gopcua/opcua/errors
