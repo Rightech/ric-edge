@@ -45,7 +45,7 @@ run_%:	##
 	## (see https://golang.org/doc/articles/race_detector.html#Options)
 	## also you can disable data racer via NORACE=1
 	GORACE="history_size=$(HS)" go run \
-		$(if $(NORACE),,-race -gcflags=all=-d=checkptr=0 )./cmd/$(subst _,-,$*) $(FLAGS) || true
+		$(if $(NORACE),,-race )./cmd/$(subst _,-,$*) $(FLAGS) || true
 
 tool_%:  ##
 	## run any tool from ./tools folder
