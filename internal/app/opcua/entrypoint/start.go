@@ -28,7 +28,12 @@ import (
 )
 
 func Start(done <-chan os.Signal) error {
-	hand, err := handler.New(viper.GetString("opcua.endpoint"))
+	hand, err := handler.New(
+		viper.GetString("opcua.endpoint"),
+		viper.GetString("opcua.encryption"),
+		viper.GetString("opcua.mode"),
+		viper.GetString("opcua.server_cert"),
+		viper.GetString("opcua.server_key"))
 	if err != nil {
 		return err
 	}

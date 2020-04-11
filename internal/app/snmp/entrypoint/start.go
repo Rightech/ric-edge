@@ -32,7 +32,12 @@ func Start(done <-chan os.Signal) error {
 		viper.GetString("snmp.host_port"),
 		viper.GetString("snmp.community"),
 		viper.GetString("snmp.version"),
-	)
+		viper.GetString("snmp.mode"),
+		viper.GetString("snmp.auth_protocol"),
+		viper.GetString("snmp.auth_key"),
+		viper.GetString("snmp.priv_protocol"),
+		viper.GetString("snmp.priv_key"),
+		viper.GetString("snmp.security_name"))
 	if err != nil {
 		return err
 	}

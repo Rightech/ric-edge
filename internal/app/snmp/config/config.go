@@ -30,6 +30,12 @@ func Setup(version ...string) {
 	viper.SetDefault("snmp.host_port", "localhost:161")
 	viper.SetDefault("snmp.version", "2c")
 	viper.SetDefault("snmp.community", "public")
+	viper.SetDefault("snmp.mode", "")
+	viper.SetDefault("snmp.auth_protocol", "")
+	viper.SetDefault("snmp.auth_key", "")
+	viper.SetDefault("snmp.priv_protocol", "")
+	viper.SetDefault("snmp.priv_key", "")
+	viper.SetDefault("snmp.security_name", "")
 
 	viper.Set("snmp.ws_path", "/snmp")
 }

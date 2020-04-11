@@ -27,6 +27,10 @@ import (
 func Setup(version ...string) {
 	config.Init(version)
 
-	viper.Set("opcua.ws_path", "/opcua")
 	viper.SetDefault("opcua.endpoint", "opc.tcp://localhost:4840")
+	viper.SetDefault("opcua.encryption", "")
+	viper.SetDefault("opcua.mode", "None")
+	viper.SetDefault("opcua.server_cert", "")
+	viper.SetDefault("opcua.server_key", "")
+	viper.Set("opcua.ws_path", "/opcua")
 }
