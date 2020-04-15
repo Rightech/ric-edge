@@ -32,8 +32,8 @@ bench:  ##
 lint:  ##
 	## lint project by https://github.com/golangci/golangci-lint
 	@docker run --rm --env GOFLAGS="-mod=vendor" -v $(CURDIR):/app \
-	-w /app golangci/golangci-lint:v1.23 \
-	/bin/sh -c 'golangci-lint run --fix --enable-all --disable gomnd cmd/... internal/... pkg/... tools/...; \
+	-w /app golangci/golangci-lint:v1.24-alpine \
+	/bin/sh -c 'golangci-lint run --enable-all --disable gomnd cmd/... internal/... pkg/... tools/...; \
 		chown -R $(shell id -u):$(shell id -g) /app'
 
 # "|| true" required for prevent make to output error message when app
