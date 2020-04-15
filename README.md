@@ -56,7 +56,7 @@ auto_download_updates = false  # if true service will download update and exit
     clean_state = false # should internal state be cleaned on start or not
 
     [core.cloud]
-    url = "https://sandbox.rightech.io/api/v1"
+    url = "https://dev.rightech.io/api/v1"
     # cloud jwt access token
     # minimal scope should be
     #
@@ -67,7 +67,7 @@ auto_download_updates = false  # if true service will download update and exit
     [core.mqtt]
     # if cert_file and key_path provided core will be use tls connection
     # in this case make sure your url start with tls://
-    url = "tls://sandbox.rightech.io:8883"
+    url = "tls://dev.rightech.io:8883"
     cert_file = "" # mqtt certificate file path
     key_path = "" # mqtt key file path
 
@@ -77,11 +77,21 @@ auto_download_updates = false  # if true service will download update and exit
 
 [opcua]
     endpoint = "opc.tcp://localhost:4840"
+    encryption = "Basic256Sha256"   # required for encrypted servers only, "Basic256Sha", "Basic256", "Basic128Rsa15" supported
+    mode = "SignAndEncrypt"         # required for encrypted servers only, "None", "Sign", "SignAndEncrypt" supported
+    server_cert = "cert.pem"        # required for encrypted servers only, path to .pem certificate
+    server_key = "key.pem"          # required for encrypted servers only, path to .pem key
 
 [snmp]
     host_port="localhost:161"
-    version="2c"
-    community= "public"
+    community="public"            # community string, required for v2c only
+    version="2c"                  # version of SNMP ("2c" or "3")
+    mode = "authPriv"             # mode of encryption ("authPriv", "authNoPriv", "NoauthNoPriv"), required for v3 only
+    auth_protocol = "MD5"         # "MD5" and "SHA" supported, required for v3 only (if necessary)
+    auth_key = ""                 # required for v3 only (if necessary)
+    priv_protocol = "DES"         # "DES" and "AES" supported, required for v3 only (if necessary)
+    priv_key = ""                 # required for v3 only (if necessary)
+    security_name = ""            # required for v3 only
 ```
 
 ## build
