@@ -64,7 +64,6 @@ func modeToMode(mode string) (g.SnmpV3MsgFlags, error) {
 	default:
 		return g.SnmpV3MsgFlags(^uint8(0)), errors.New("snmp: unknown security mode")
 	}
-
 }
 
 func authprotToAuthProt(authProtocol string) (g.SnmpV3AuthProtocol, error) {
@@ -101,7 +100,8 @@ func privprotToPrivProt(privProtocol string) (g.SnmpV3PrivProtocol, error) {
 	}
 }
 
-func New(hostPort, community, version, mode, authProtocol, authKey, privProtocol, privKey, securityName string) (Service, error) {
+func New(hostPort, community, version, mode, authProtocol, authKey, privProtocol, privKey,
+	securityName string) (Service, error) {
 	if hostPort == "" {
 		return Service{}, errors.New("snmp.new: empty host_port")
 	}
@@ -388,18 +388,22 @@ func IPtoHEX(ip string) (string, error) {
 	if err != nil {
 		return "", errors.New("invalid ip")
 	}
+
 	b, err := strconv.ParseUint(s[1], 10, 32)
 	if err != nil {
 		return "", errors.New("invalid ip")
 	}
+
 	c, err := strconv.ParseUint(s[2], 10, 32)
 	if err != nil {
 		return "", errors.New("invalid ip")
 	}
+
 	d, err := strconv.ParseUint(s[3], 10, 32)
 	if err != nil {
 		return "", errors.New("invalid ip")
 	}
+
 	if a > 255 || b > 255 || c > 255 || d > 255 {
 		return "", errors.New("invalid ip")
 	}
@@ -413,7 +417,6 @@ func IPtoHEX(ip string) (string, error) {
 }
 
 func (s Service) set(params objx.Map) (interface{}, error) {
-
 	oidV := params.Get("oid")
 	if !oidV.IsStr() {
 		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "oid required and should be string")
@@ -434,6 +437,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 2: // INTEGER
@@ -441,6 +445,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.Integer,
@@ -449,6 +454,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 66: // Gauge32
@@ -456,6 +462,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.Gauge32,
@@ -464,6 +471,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 64: // IPAddress
@@ -471,6 +479,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.IPAddress,
@@ -479,6 +488,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 	case 6: // OID
 		res, err := s.cli.Set([]g.SnmpPDU{{
@@ -489,6 +499,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 67: // Timeticks
@@ -496,6 +507,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.TimeTicks,
@@ -504,6 +516,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 65: // Counter32
@@ -511,6 +524,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.Counter32,
@@ -519,6 +533,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	case 70: // Counter64
@@ -526,6 +541,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		res, err := s.cli.Set([]g.SnmpPDU{{
 			Name:  oidV.Str(),
 			Type:  g.Counter64,
@@ -534,6 +550,7 @@ func (s Service) set(params objx.Map) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return encodeSnmpPacket(res), nil
 
 	default:

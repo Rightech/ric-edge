@@ -83,7 +83,6 @@ type dev struct {
 }
 
 func (s Service) scan(params objx.Map) (interface{}, error) {
-
 	timeout, err := time.ParseDuration(params.Get("timeout").Str("5s"))
 
 	if err != nil {
@@ -95,7 +94,6 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 	devices := make(map[string]*dev)
 
 	advHandler := func(a ble.Advertisement) {
-
 		v, ok := devices[a.Addr().String()]
 		if ok {
 			v.Name = a.LocalName()

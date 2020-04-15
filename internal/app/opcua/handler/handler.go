@@ -48,10 +48,12 @@ func New(endpoint, encryption, mode, serverCert, serverKey string) (Service, err
 		if err != nil {
 			return Service{}, err
 		}
+
 		ep := opcua.SelectEndpoint(endpoints, encryption, ua.MessageSecurityModeFromString(mode))
 		if ep == nil {
 			return Service{}, errors.New("opcua.new: failed to find suitable endpoint")
 		}
+
 		opts = []opcua.Option{
 			opcua.SecurityPolicy(encryption),
 			opcua.SecurityModeString(mode),
@@ -177,6 +179,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.Int32:
@@ -184,7 +187,9 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
 		}
+
 		result := int32(input)
+
 		v, err := ua.NewVariant(result)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
@@ -207,6 +212,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.UInt32:
@@ -214,7 +220,9 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
 		}
+
 		result := uint32(input)
+
 		v, err := ua.NewVariant(result)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
@@ -237,6 +245,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.Int64:
@@ -267,6 +276,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.UInt64:
@@ -297,6 +307,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.Float:
@@ -304,7 +315,9 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
 		}
+
 		result := float32(input)
+
 		v, err := ua.NewVariant(result)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
@@ -327,6 +340,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.Double:
@@ -357,6 +371,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	case id.String:
@@ -382,14 +397,16 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
-		return &resp.Results[0], nil
 
+		return &resp.Results[0], nil
 	case id.DateTime:
 		layout := "2006-01-02 15:04:05.999999999 +0000 GMT"
+
 		t, err := time.Parse(layout, params.Get("value").Str())
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
 		}
+
 		v, err := ua.NewVariant(t)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value: %w", err)
@@ -412,6 +429,7 @@ func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("write failed: %w", err)
 		}
+
 		return &resp.Results[0], nil
 
 	default:
