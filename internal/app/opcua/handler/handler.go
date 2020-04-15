@@ -18,12 +18,15 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
+	"github.com/gopcua/opcua/id"
 	"github.com/stretchr/objx"
 
 	"github.com/Rightech/ric-edge/pkg/jsonrpc"
@@ -33,8 +36,34 @@ type Service struct {
 	cli *opcua.Client
 }
 
-func New(endpoint string) (Service, error) {
-	c := opcua.NewClient(endpoint)
+func New(endpoint, encryption, mode, server_cert, server_key string) (Service, error) {
+	var opts []opcua.Option
+	
+	switch mode {
+		case "None":
+			opts = []opcua.Option{
+				opcua.SecurityModeString(mode),
+			}
+		default:
+			endpoints, err := opcua.GetEndpoints(endpoint)
+			if err != nil {
+				return Service{}, err
+			}
+			ep := opcua.SelectEndpoint(endpoints, encryption, ua.MessageSecurityModeFromString(mode))
+			if ep == nil {
+				return Service{}, errors.New("opcua.new: failed to find suitable endpoint")
+			}
+			opts = []opcua.Option{
+				opcua.SecurityPolicy(encryption),
+				opcua.SecurityModeString(mode),
+				opcua.CertificateFile(server_cert),
+				opcua.PrivateKeyFile(server_key),
+				opcua.AuthAnonymous(),
+				opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeAnonymous),
+			}
+	}
+	
+	c := opcua.NewClient(endpoint, opts...)
 
 	if err := c.Connect(context.Background()); err != nil {
 		return Service{}, err
@@ -51,6 +80,8 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.write(req.Params)
 	case "opcua-browse":
 		res, err = s.browse(req.Params)
+//	case "opcua-subscribe":
+//		res, err = s.subscribe(req.Params)
 	default:
 		err = jsonrpc.ErrMethodNotFound.AddData("method", req.Method)
 	}
@@ -68,7 +99,7 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 
 	req := &ua.ReadRequest{
 		MaxAge:             2000,
-		NodesToRead:        []*ua.ReadValueID{{NodeID: id}},
+		NodesToRead:        []*ua.ReadValueID{&ua.ReadValueID{NodeID: id},},
 		TimestampsToReturn: ua.TimestampsToReturnBoth,
 	}
 
@@ -84,106 +115,319 @@ func (s Service) read(params objx.Map) (interface{}, error) {
 	return resp.Results[0].Value.Value(), nil
 }
 
-func parseValue(value *objx.Value) (interface{}, error) {
-	if num, ok := value.Data().(json.Number); ok {
-		if i64, err := num.Int64(); err == nil {
-			return i64, nil
-		}
+func get_type(nodeid string, c *opcua.Client) (ua.TypeID, error) {
+	id, _ := ua.ParseNodeID(nodeid)
 
-		if f64, err := num.Float64(); err == nil {
-			return f64, nil
-		}
+	req := &ua.ReadRequest{
+		MaxAge: 2000,
+		NodesToRead: []*ua.ReadValueID{
+			&ua.ReadValueID{NodeID: id},
+		},
+		TimestampsToReturn: ua.TimestampsToReturnBoth,
 	}
 
-	if value.IsInterSlice() {
-		slice := value.InterSlice()
-
-		switch v := slice[0].(type) {
-		case json.Number:
-			_, err := v.Int64()
-
-			if err == nil {
-				results := make([]int64, len(slice))
-
-				for i, v := range value.InterSlice() {
-					results[i], err = v.(json.Number).Int64()
-					if err != nil {
-						return nil, fmt.Errorf("parse to int64: %w", err)
-					}
-				}
-
-				return results, nil
-			}
-
-			results := make([]float64, len(slice))
-
-			for i, v := range value.InterSlice() {
-				results[i], err = v.(json.Number).Float64()
-				if err != nil {
-					return nil, fmt.Errorf("parse to double: %w", err)
-				}
-			}
-
-			return results, nil
-		case string:
-			var (
-				results = make([]string, len(slice))
-				ok      bool
-			)
-
-			for i, v := range value.InterSlice() {
-				results[i], ok = v.(string)
-				if !ok {
-					return nil, errors.New("parse: different types in array")
-				}
-			}
-
-			return results, nil
-		default:
-			return nil, errors.New("parse: unknown array values type")
-		}
+	resp, err := c.Read(req)
+	if err != nil {
+		return ua.TypeID(0), fmt.Errorf("read while write failed: %w", err)
 	}
 
-	return value.Data(), nil
+	if resp.Results[0].Status != ua.StatusOK {
+		return ua.TypeID(0), fmt.Errorf("status not OK: %d", resp.Results[0].Status)
+	}
+	
+	return resp.Results[0].Value.Type(), nil
 }
 
 func (s Service) write(params objx.Map) (*ua.StatusCode, error) {
 	nodeID := params.Get("node_id").Str()
 
-	id, err := ua.ParseNodeID(nodeID)
+	ID, err := ua.ParseNodeID(nodeID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid node id: %w", err)
 	}
-
-	val, err := parseValue(params.Get("value"))
+	
+	nodeType, err := get_type(nodeID, s.cli)
 	if err != nil {
 		return nil, err
 	}
-
-	v, err := ua.NewVariant(val)
-	if err != nil {
-		return nil, fmt.Errorf("invalid value: %w", err)
-	}
-
-	req := &ua.WriteRequest{
-		NodesToWrite: []*ua.WriteValue{
-			{
-				NodeID:      id,
-				AttributeID: ua.AttributeIDValue,
-				Value: &ua.DataValue{
-					EncodingMask: ua.DataValueValue,
-					Value:        v,
+	
+	switch nodeType {
+		case id.Boolean:
+			input, err := strconv.ParseBool(params.Get("value").Str())
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := bool(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
 				},
-			},
-		},
-	}
+			}
 
-	resp, err := s.cli.Write(req)
-	if err != nil {
-		return nil, fmt.Errorf("write failed: %w", err)
-	}
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.Int32:
+			input, err := strconv.ParseInt(params.Get("value").Str(), 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := int32(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
 
-	return &resp.Results[0], nil
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		case id.UInt32:
+			input, err := strconv.ParseUint(params.Get("value").Str(), 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := uint32(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.Int64:
+			input, err := strconv.ParseInt(params.Get("value").Str(), 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := int64(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.UInt64:
+			input, err := strconv.ParseUint(params.Get("value").Str(), 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := uint64(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.Float:
+			input, err := strconv.ParseFloat(params.Get("value").Str(), 32)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := float32(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.Double:
+			input, err := strconv.ParseFloat(params.Get("value").Str(), 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			result := float64(input)
+			v, err := ua.NewVariant(result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.String:
+			v, err := ua.NewVariant(params.Get("value").Str())
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		case id.DateTime:
+			layout := "2006-01-02 15:04:05.999999999 +0000 GMT"
+			t, err := time.Parse(layout, params.Get("value").Str())
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			v, err := ua.NewVariant(t)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value: %w", err)
+			}
+			
+			req := &ua.WriteRequest{
+				NodesToWrite: []*ua.WriteValue{
+					&ua.WriteValue{
+						NodeID:      ID,
+						AttributeID: ua.AttributeIDValue,
+						Value: &ua.DataValue{
+							EncodingMask: ua.DataValueValue,
+							Value:        v,  // new value of node
+						},
+					},
+				},
+			}
+
+			resp, err := s.cli.Write(req)
+			if err != nil {
+				return nil, fmt.Errorf("write failed: %w", err)
+			}
+			return &resp.Results[0], nil
+		
+		
+		default:
+			return nil, fmt.Errorf("write failed: unsupported type of node - %v", nodeType)
+		}
 }
 
 func (s Service) browse(params objx.Map) (interface{}, error) {

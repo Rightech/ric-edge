@@ -29,7 +29,7 @@ import (
 // https://github.com/gopcua/opcua/blob/a2111b07cd2c925c83f0eabd292d8b2747645d11/examples/browse/browse.go
 
 type nodeDef struct {
-	NodeID      *ua.NodeID         `json:"node_id"`
+	NodeID      string             `json:"node_id"`
 	NodeClass   ua.NodeClass       `json:"node_class"`
 	AccessLevel ua.AccessLevelType `json:"access_level"`
 	Writable    bool               `json:"writable"`
@@ -44,7 +44,7 @@ type nodeDef struct {
 }
 
 func (n nodeDef) records() []string {
-	return []string{n.BrowseName, n.DataType, n.NodeID.String(), n.Unit,
+	return []string{n.BrowseName, n.DataType, n.NodeID, n.Unit,
 		n.Scale, n.Min, n.Max, strconv.FormatBool(n.Writable), n.Description}
 }
 
@@ -69,7 +69,7 @@ func browse(n *opcua.Node, path string, level int) ([]nodeDef, error) {
 	}
 
 	var def = nodeDef{
-		NodeID: n.ID,
+		NodeID: n.ID.String(),
 	}
 
 	err = fillStatus(attrs, &def)
@@ -141,6 +141,8 @@ func fillDataType(attrs []*ua.DataValue, def *nodeDef) error {
 			def.DataType = "uint16"
 		case id.UInt32:
 			def.DataType = "uint32"
+		case id.UInt64:
+			def.DataType = "uint64"
 		case id.UtcTime:
 			def.DataType = "time.Time"
 		case id.String:

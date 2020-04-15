@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
 	g "github.com/soniah/gosnmp"
@@ -48,7 +49,59 @@ func versionToVersion(version string) (g.SnmpVersion, error) {
 	}
 }
 
-func New(hostPort, community, version string) (Service, error) {
+func modeToMode(mode string) (g.SnmpV3MsgFlags, error) {
+	switch mode {
+	case "authPriv":
+		return g.AuthPriv, nil
+	case "authNoPriv":
+		return g.AuthNoPriv, nil
+	case "NoauthNoPriv":
+		return g.NoAuthNoPriv, nil
+//	case "Reportable":
+//		return g.Reportable, nil
+	case "":
+		return g.NoAuthNoPriv, nil
+	default:
+		return g.SnmpV3MsgFlags(^uint8(0)), errors.New("snmp: unknown security mode")
+	}
+
+}
+
+func authprotToAuthProt(auth_protocol string) (g.SnmpV3AuthProtocol, error) {
+	switch auth_protocol {
+	case "MD5":
+		return g.MD5, nil
+	case "SHA":
+		return g.SHA, nil
+	case "":
+		return g.MD5, nil
+	default:
+		return g.SnmpV3AuthProtocol(^uint8(0)), errors.New("snmp: unknown or unsupported authentication protocol")
+	}
+}
+
+func privprotToPrivProt(priv_protocol string) (g.SnmpV3PrivProtocol, error) {
+	switch priv_protocol {
+	case "DES":
+		return g.DES, nil
+	case "AES":
+		return g.AES, nil
+//	case "AES192":
+//		return g.AES192, nil
+//	case "AES256":
+//		return g.AES256, nil
+	case "":
+		return g.NoPriv, nil
+//	case "AES192C":
+//		return g.AES192C, nil
+//	case "AES256C":
+//		return g.AES256C, nil
+	default:
+		return g.SnmpV3PrivProtocol(^uint8(0)), errors.New("snmp: unknown or unsupported privacy protocol")
+	}
+}
+
+func New(hostPort, community, version, mode, auth_protocol, auth_key, priv_protocol, priv_key, security_name string) (Service, error) {
 	if hostPort == "" {
 		return Service{}, errors.New("snmp.new: empty host_port")
 	}
@@ -58,6 +111,21 @@ func New(hostPort, community, version string) (Service, error) {
 	}
 
 	ver, err := versionToVersion(version)
+	if err != nil {
+		return Service{}, err
+	}
+	
+	sec_mod, err := modeToMode(mode)
+	if err != nil {
+		return Service{}, err
+	}
+	
+	auth_prot, err := authprotToAuthProt(auth_protocol)
+	if err != nil {
+		return Service{}, err
+	}
+	
+	priv_prot, err := privprotToPrivProt(priv_protocol)
 	if err != nil {
 		return Service{}, err
 	}
@@ -80,8 +148,16 @@ func New(hostPort, community, version string) (Service, error) {
 		Timeout:            time.Duration(2) * time.Second,
 		Retries:            3,
 		ExponentialTimeout: true,
+		SecurityModel:      g.UserSecurityModel,
 		MaxOids:            g.MaxOids,
 		Logger:             logger.New("info", log.DebugLevel),
+		MsgFlags:           sec_mod,
+		SecurityParameters: &g.UsmSecurityParameters{UserName: security_name,
+			AuthenticationProtocol:   auth_prot,
+			AuthenticationPassphrase: auth_key,
+			PrivacyProtocol:          priv_prot,
+			PrivacyPassphrase:        priv_key,
+		},
 	}
 
 	err = cli.Connect()
@@ -102,8 +178,8 @@ func (s Service) Call(req jsonrpc.Request) (res interface{}, err error) {
 		res, err = s.getBulk(req.Params)
 	case "snmp-walk":
 		res, err = s.walk(req.Params)
-	case "snmp-bulk-walk":
-		res, err = s.bulkWalk(req.Params)
+//	case "snmp-bulk-walk":
+//		res, err = s.bulkWalk(req.Params)
 	case "snmp-set":
 		res, err = s.set(req.Params)
 	case "snmp-send-trap":
@@ -305,18 +381,164 @@ func parsePDU(params objx.Map, k string) ([]g.SnmpPDU, error) {
 	return data, nil
 }
 
+func IPtoHEX(ip string) (string, error) {
+	s := strings.Split(ip, ".")
+	
+	a, err := strconv.ParseUint(s[0], 10, 32)
+	if err != nil {
+		return "", errors.New("Invalid IP")
+	}
+	b, err := strconv.ParseUint(s[1], 10, 32)
+	if err != nil {
+		return "", errors.New("Invalid IP")
+	}
+	c, err := strconv.ParseUint(s[2], 10, 32)
+	if err != nil {
+		return "", errors.New("Invalid IP")
+	}
+	d, err := strconv.ParseUint(s[3], 10, 32)
+	if err != nil {
+		return "", errors.New("Invalid IP")
+	}
+	if a > 255 || b > 255 || c > 255 || d > 255 {
+		return "", errors.New("Invalid IP")
+	}
+
+	h1 := fmt.Sprintf("%02x", a)
+	h2 := fmt.Sprintf("%02x", b)
+	h3 := fmt.Sprintf("%02x", c)
+	h4 := fmt.Sprintf("%02x", d)
+
+	return h1 + h2 + h3 + h4, nil
+}
+
 func (s Service) set(params objx.Map) (interface{}, error) {
-	data, err := parsePDU(params, "pdus")
+
+	oidV := params.Get("oid")
+	if !oidV.IsStr() {
+		return nil, jsonrpc.ErrInvalidParams.AddData("msg", "oid required and should be string")
+	}
+	
+	typ, err := getUint8(params, "type")
 	if err != nil {
 		return nil, err
 	}
-
-	res, err := s.cli.Set(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return encodeSnmpPacket(res), nil
+	
+	switch typ {
+		case 4: // STRING
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.OctetString,
+				Value: params.Get("value").Str(),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 2: // INTEGER
+			v, err := strconv.Atoi(params.Get("value").Str())
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.Integer,
+				Value: v,
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 66: // Gauge32
+			v, err := strconv.ParseUint(params.Get("value").Str(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.Gauge32,
+				Value: uint(v),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 64: // IPAddress
+		v, err := IPtoHEX(params.Get("value").Str())
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.IPAddress,
+				Value: v,
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		case 6: // OID
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.ObjectIdentifier,
+				Value: params.Get("value").Str(),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 67: // Timeticks
+			v, err := strconv.ParseUint(params.Get("value").Str(), 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.TimeTicks,
+				Value: uint32(v),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 65: // Counter32
+			v, err := strconv.ParseUint(params.Get("value").Str(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.Counter32,
+				Value: uint(v),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		case 70: // Counter64
+			v, err := strconv.ParseUint(params.Get("value").Str(), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			res, err := s.cli.Set([]g.SnmpPDU{{
+				Name:  oidV.Str(),
+				Type:  g.Counter64,
+				Value: uint64(v),
+			}})
+			if err != nil {
+				return nil, err
+			}
+			return encodeSnmpPacket(res), nil
+		
+		default: 
+			return nil, jsonrpc.ErrInvalidParams.AddData("msg", "unknown or unsupported type")
+	}	
 }
 
 func (s Service) sendTrap(params objx.Map) (interface{}, error) { // nolint: funlen
