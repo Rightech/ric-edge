@@ -112,9 +112,9 @@ func (s Service) scan(params objx.Map) (interface{}, error) {
 			Connectable: a.Connectable(),
 		}
 
-		len := len(a.Services())
+		length := len(a.Services())
 
-		if len > 0 {
+		if length > 0 {
 			for _, v := range a.Services() {
 				if v.String() == eddystoneService {
 					device.IsBeacon = true

@@ -133,18 +133,18 @@ func toVal(value interface{}) lua.LValue {
 	}
 
 	if val, ok := value.(jsoniter.RawMessage); ok {
-		return lua.LString(string(val))
+		return lua.LString(val)
 	}
 
 	if val, ok := value.([]byte); ok {
-		return lua.LString(string(val))
+		return lua.LString(val)
 	}
 
 	switch val := reflect.ValueOf(value); val.Kind() {
 	case reflect.String:
 		return lua.LString(val.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return lua.LNumber(float64(val.Int()))
+		return lua.LNumber(val.Int())
 	case reflect.Bool:
 		return lua.LBool(val.Bool())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
