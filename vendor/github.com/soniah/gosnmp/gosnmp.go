@@ -61,7 +61,7 @@ type GoSNMP struct {
 	// Timeout is the timeout for one SNMP request/response
 	Timeout time.Duration
 
-	// Set the number of retries to attempt within timeout
+	// Set the number of retries to attempt
 	Retries int
 
 	// Double timeout in each retry
@@ -123,6 +123,7 @@ type GoSNMP struct {
 }
 
 // Default connection settings
+//nolint:gochecknoglobals
 var Default = &GoSNMP{
 	Port:               161,
 	Transport:          "udp",
@@ -261,7 +262,13 @@ func (x *GoSNMP) connect(networkSuffix string) error {
 	// msgID INTEGER (0..2147483647)
 	x.msgID = uint32(x.random.Int31())
 	// RequestID is Integer32 from SNMPV2-SMI and uses all 32 bits
-	x.requestID = x.random.Uint32()
+	// TrueSpeed: However, some SNMP devices do not implement the spec properly,
+	// and get confused with negative integers. So we take care not to allow any
+	// numbers that are large enough to overflow.
+	// However: https://golang.org/pkg/math/rand/#Rand.Int31 says "Int31 returns a
+	// non-negative pseudo-random 31-bit integer as an int32". Perhaps this fix
+	// should be reworded?
+	x.requestID = uint32(x.random.Int31() / 2)
 
 	x.rxBuf = new([rxBufSize]byte)
 

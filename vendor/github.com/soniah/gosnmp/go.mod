@@ -1,7 +1,5 @@
 module github.com/soniah/gosnmp
 
+go 1.13
 
-require (
-	github.com/golang/mock v1.2.0
-	github.com/stretchr/testify v1.3.0
-)
+require github.com/stretchr/testify v1.5.1
