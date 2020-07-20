@@ -5,6 +5,11 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
+  "requiredStatusChecks": null,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "masterIssue": true,
+  "timezone": "Europe/Moscow",
   "schedule": "on sunday",
   "packageRules": [
     {
