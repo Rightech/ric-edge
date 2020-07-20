@@ -1,5 +1,7 @@
 gosnmp
 ======
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/avelino/awesome-go#networking)
+
 [![Build Status](https://travis-ci.org/soniah/gosnmp.svg?branch=master)](https://travis-ci.org/soniah/gosnmp)
 [![GoDoc](https://godoc.org/github.com/soniah/gosnmp?status.png)](http://godoc.org/github.com/soniah/gosnmp)
 https://github.com/soniah/gosnmp
@@ -232,6 +234,8 @@ work against any SNMP MIB-2 compliant host (e.g. a router, NAS box, printer).
 Mocks were generated using:
 
 `mockgen -source=interface.go -destination=mocks/gosnmp_mock.go -package=mocks`
+
+However they're currently removed, as they were breaking linting.
 
 To profile cpu usage:
 

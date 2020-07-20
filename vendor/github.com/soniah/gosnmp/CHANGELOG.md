@@ -1,3 +1,15 @@
+## v1.27.0
+
+* fix a race condition - logger
+* INFORM responses
+* linting
+
+## v1.26.0
+
+* more SNMPv3
+* various bug fixes
+* linting
+
 ## v1.25.0
 
 * SNMPv3 new hash functions for SNMPV3 USM RFC7860

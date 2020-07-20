@@ -1,11 +1,8 @@
 language: go
 
 go:
-- "1.11"
-- "1.12"
 - "1.13"
-
-# $TRAVIS_GOARCH hack - see https://github.com/travis-ci/travis-ci/issues/6126
+- "1.14"
 
 env:
   global:
@@ -27,15 +24,18 @@ before_install:
 install:
  - go get github.com/soniah/gosnmp
  - go get github.com/stretchr/testify/assert
- - go get -u golang.org/x/tools/cmd/goimports
  - sudo ./snmp_users.sh
  - sudo /etc/init.d/snmpd restart
+ - make tools
 
 script:
- - ./linters.sh
+ - make lint
  - go test -v -tags helper
  - go test -v -tags marshal
  - go test -v -tags misc
  - go test -v -tags api
  - go test -v -tags end2end
  - go test -v -tags trap
+
+# TODO: only run this on TRAVIS_GOARCH=amd64
+# - go test -v -tags all -race

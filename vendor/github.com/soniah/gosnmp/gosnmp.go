@@ -17,6 +17,7 @@ import (
 	"math/rand"
 	"net"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -33,10 +34,15 @@ const (
 
 	// Java SNMP uses 50, snmp-net uses 10
 	defaultMaxRepetitions = 50
+
+	// "udp" is used regularly, prevent 'goconst' complaints
+	udp = "udp"
 )
 
 // GoSNMP represents GoSNMP library state
 type GoSNMP struct {
+	mu sync.Mutex
+
 	// Conn is net connection to use, typically established using GoSNMP.Connect()
 	Conn net.Conn
 
@@ -61,7 +67,7 @@ type GoSNMP struct {
 	// Timeout is the timeout for one SNMP request/response
 	Timeout time.Duration
 
-	// Set the number of retries to attempt within timeout
+	// Set the number of retries to attempt
 	Retries int
 
 	// Double timeout in each retry
@@ -123,9 +129,10 @@ type GoSNMP struct {
 }
 
 // Default connection settings
+//nolint:gochecknoglobals
 var Default = &GoSNMP{
 	Port:               161,
-	Transport:          "udp",
+	Transport:          udp,
 	Community:          "public",
 	Version:            Version2c,
 	Timeout:            time.Duration(2) * time.Second,
@@ -145,9 +152,6 @@ type SnmpPDU struct {
 	// The value to be set by the SNMP set, or the value when
 	// sending a trap
 	Value interface{}
-
-	// Logger implements the Logger interface
-	Logger Logger
 }
 
 // AsnExtensionID mask to identify types > 30 in subsequent byte
@@ -247,7 +251,7 @@ func (x *GoSNMP) connect(networkSuffix string) error {
 		return err
 	}
 
-	x.Transport = x.Transport + networkSuffix
+	x.Transport += networkSuffix
 	err = x.netConnect()
 	if err != nil {
 		return fmt.Errorf("error establishing connection to host: %s", err.Error())
@@ -261,7 +265,13 @@ func (x *GoSNMP) connect(networkSuffix string) error {
 	// msgID INTEGER (0..2147483647)
 	x.msgID = uint32(x.random.Int31())
 	// RequestID is Integer32 from SNMPV2-SMI and uses all 32 bits
-	x.requestID = x.random.Uint32()
+	// TrueSpeed: However, some SNMP devices do not implement the spec properly,
+	// and get confused with negative integers. So we take care not to allow any
+	// numbers that are large enough to overflow.
+	// However: https://golang.org/pkg/math/rand/#Rand.Int31 says "Int31 returns a
+	// non-negative pseudo-random 31-bit integer as an int32". Perhaps this fix
+	// should be reworded?
+	x.requestID = uint32(x.random.Int31() / 2)
 
 	x.rxBuf = new([rxBufSize]byte)
 
@@ -280,19 +290,21 @@ func (x *GoSNMP) netConnect() error {
 
 func (x *GoSNMP) validateParameters() error {
 	if x.Logger == nil {
+		x.mu.Lock()
+		defer x.mu.Unlock()
 		x.Logger = log.New(ioutil.Discard, "", 0)
 	} else {
 		x.loggingEnabled = true
 	}
 
 	if x.Transport == "" {
-		x.Transport = "udp"
+		x.Transport = udp
 	}
 
 	if x.MaxOids == 0 {
 		x.MaxOids = MaxOids
 	} else if x.MaxOids < 0 {
-		return fmt.Errorf("MaxOids cannot be less than 0")
+		return fmt.Errorf("field MaxOids cannot be less than 0")
 	}
 
 	if x.Version == Version3 {
@@ -311,7 +323,6 @@ func (x *GoSNMP) validateParameters() error {
 	if x.Context == nil {
 		x.Context = context.Background()
 	}
-
 	return nil
 }
 
@@ -347,7 +358,7 @@ func (x *GoSNMP) Get(oids []string) (result *SnmpPacket, err error) {
 	// convert oids slice to pdu slice
 	var pdus []SnmpPDU
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil, x.Logger})
+		pdus = append(pdus, SnmpPDU{oid, Null, nil})
 	}
 	// build up SnmpPacket
 	packetOut := x.mkSnmpPacket(GetRequest, pdus, 0, 0)
@@ -378,7 +389,7 @@ func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
 	// convert oids slice to pdu slice
 	var pdus []SnmpPDU
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil, x.Logger})
+		pdus = append(pdus, SnmpPDU{oid, Null, nil})
 	}
 
 	// Marshal and send the packet
@@ -400,7 +411,7 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxRepetitions uint8
 	// convert oids slice to pdu slice
 	var pdus []SnmpPDU
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil, x.Logger})
+		pdus = append(pdus, SnmpPDU{oid, Null, nil})
 	}
 
 	// Marshal and send the packet
@@ -448,7 +459,7 @@ func (x *GoSNMP) SnmpEncodePacket(pdutype PDUType, pdus []SnmpPDU, nonRepeaters 
 func (x *GoSNMP) SnmpDecodePacket(resp []byte) (*SnmpPacket, error) {
 	var err error
 
-	result := new(SnmpPacket)
+	result := &SnmpPacket{}
 
 	err = x.validateParameters()
 	if err != nil {
@@ -463,7 +474,7 @@ func (x *GoSNMP) SnmpDecodePacket(resp []byte) (*SnmpPacket, error) {
 	var cursor int
 	cursor, err = x.unmarshalHeader(resp, result)
 	if err != nil {
-		err = fmt.Errorf("Unable to decode packet header: %s", err.Error())
+		err = fmt.Errorf("unable to decode packet header: %s", err.Error())
 		return result, err
 	}
 
@@ -476,14 +487,14 @@ func (x *GoSNMP) SnmpDecodePacket(resp []byte) (*SnmpPacket, error) {
 
 	err = x.unmarshalPayload(resp, cursor, result)
 	if err != nil {
-		err = fmt.Errorf("Unable to decode packet body: %s", err.Error())
+		err = fmt.Errorf("unable to decode packet body: %s", err.Error())
 		return result, err
 	}
 
-	if result == nil {
-		err = fmt.Errorf("Unable to decode packet: no variables")
-		return result, err
-	}
+	// if result == nil {
+	// 	err = fmt.Errorf("Unable to decode packet: no variables")
+	// 	return result, err
+	// }
 	return result, nil
 }
 
@@ -588,7 +599,7 @@ func ToBigInt(value interface{}) *big.Int {
 	case int32:
 		val = int64(value)
 	case int64:
-		val = int64(value)
+		val = value
 	case uint:
 		val = int64(value)
 	case uint8:
