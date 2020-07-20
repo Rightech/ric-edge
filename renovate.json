@@ -10,7 +10,7 @@
   "prConcurrentLimit": 0,
   "masterIssue": true,
   "timezone": "Europe/Moscow",
-  "schedule": "on sunday",
+  "schedule": ["after 5am and before 10am on sunday"],
   "packageRules": [
     {
       "updateTypes": ["patch", "digest"],
