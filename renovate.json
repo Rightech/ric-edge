@@ -15,6 +15,10 @@
     {
       "updateTypes": ["patch", "digest"],
       "automerge": true
+    },
+    {
+      "updateTypes": ["minor"],
+      "groupName": "minor-dependencies"
     }
   ]
 }
