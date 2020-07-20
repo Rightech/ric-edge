@@ -7,7 +7,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/gopcua/opcua v0.1.11
 	github.com/gorilla/websocket v1.4.2
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.10
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
