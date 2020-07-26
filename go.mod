@@ -20,8 +20,8 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/soniah/gosnmp v1.27.0
 	github.com/spf13/viper v1.7.0
-	github.com/stretchr/objx v0.2.0
+	github.com/stretchr/objx v0.3.0
 	github.com/yuin/gopher-lua v0.0.0-20200603152657-dc2b0ca8b37e
-	go.etcd.io/bbolt v1.3.4
+	go.etcd.io/bbolt v1.3.5
 	golang.org/x/sys v0.0.0-20200724161237-0e2f3a69832c
 )
