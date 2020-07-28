@@ -74,7 +74,7 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.0
 github.com/spf13/viper
-# github.com/stretchr/objx v0.2.0
+# github.com/stretchr/objx v0.3.0
 github.com/stretchr/objx
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
@@ -83,7 +83,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# go.etcd.io/bbolt v1.3.4
+# go.etcd.io/bbolt v1.3.5
 go.etcd.io/bbolt
 # golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/internal/socks
