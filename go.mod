@@ -19,7 +19,7 @@ require (
 	github.com/shurcooL/vfsgen v0.0.0-20200627165143-92b8a710ab6c
 	github.com/sirupsen/logrus v1.6.0
 	github.com/soniah/gosnmp v1.27.0
-	github.com/spf13/viper v1.7.0
+	github.com/spf13/viper v1.7.1
 	github.com/stretchr/objx v0.3.0
 	github.com/yuin/gopher-lua v0.0.0-20200603152657-dc2b0ca8b37e
 	go.etcd.io/bbolt v1.3.5
