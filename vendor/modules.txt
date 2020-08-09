@@ -78,7 +78,7 @@ github.com/spf13/viper
 github.com/stretchr/objx
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# github.com/yuin/gopher-lua v0.0.0-20200603152657-dc2b0ca8b37e
+# github.com/yuin/gopher-lua v0.0.0-20200807101526-d70801a73ebe
 github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
