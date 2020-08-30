@@ -16,7 +16,7 @@ require (
 	github.com/raff/goble v0.0.0-20200327175727-d63360dcfd80
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200627165143-92b8a710ab6c
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/sirupsen/logrus v1.6.0
 	github.com/soniah/gosnmp v1.27.0
 	github.com/spf13/viper v1.7.1
