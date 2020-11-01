@@ -30,7 +30,7 @@ jobs:
           gzip: false
       - name: Save binaries to artifacts
         if: failure()
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: binaries
           path: build
