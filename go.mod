@@ -23,5 +23,5 @@ require (
 	github.com/stretchr/objx v0.3.0
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
+	golang.org/x/sys v0.0.0-20201126233918-771906719818
 )
