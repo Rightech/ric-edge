@@ -87,7 +87,7 @@ go.etcd.io/bbolt
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b
+# golang.org/x/sys v0.0.0-20210313202042-bd2e13477e9c
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
