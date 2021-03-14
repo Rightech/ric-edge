@@ -3,8 +3,8 @@ module github.com/Rightech/ric-edge
 go 1.13
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.0
-	github.com/eclipse/paho.mqtt.golang v1.2.0
+	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/eclipse/paho.mqtt.golang v1.3.2
 	github.com/gopcua/opcua v0.1.13
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10
@@ -17,8 +17,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
-	github.com/sirupsen/logrus v1.7.0
-	github.com/soniah/gosnmp v1.27.0
+	github.com/sirupsen/logrus v1.8.1
+	github.com/soniah/gosnmp v1.30.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/objx v0.3.0
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
